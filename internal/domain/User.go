@@ -10,6 +10,7 @@ const (
 type User struct {
 	ID       string
 	Name     string
+	LastName string
 	Document string
 	Email    string
 	Password string
