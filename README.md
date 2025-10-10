@@ -1,0 +1,1 @@
+![system business logic](./system_design/simplified_transfer_business_logic.png)
