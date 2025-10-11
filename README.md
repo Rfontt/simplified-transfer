@@ -23,6 +23,7 @@
   - The notify service could be unavailable, so when it happening use a fallback or put in a dlq queue to retry
 - endpoint to transfer:
 
+```
 POST /transfer
 Content-Type: application/json
 
@@ -31,5 +32,10 @@ Content-Type: application/json
   "payer": 4,
   "payee": 15
 }
+```
 
+- The database will use CQRS
+  - Commands: It will handle with a Postgres database
+  - Queries: It will handle with a MongoDB database
+- Consistency is not required, but the system must be available and partition-tolerant.
 
