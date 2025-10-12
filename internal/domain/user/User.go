@@ -9,8 +9,10 @@ const (
 	SHOPKEEPER Type = "shopkeeper"
 )
 
+type ID domain.AggregateID
+
 type User struct {
-	ID       string
+	ID       ID
 	Name     string
 	LastName string
 	Document string

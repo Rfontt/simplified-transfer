@@ -5,6 +5,8 @@ import "event-driven-architecture/internal/domain"
 type Type string
 type Status string
 
+type ID domain.AggregateID
+
 const (
 	DEPOSIT  Type = "deposit"
 	WITHDRAW Type = "withdraw"
@@ -16,13 +18,17 @@ const (
 )
 
 type Transaction struct {
-	ID      string
+	ID      ID
 	Type    Type
 	Status  Status
 	Balance domain.Balance
 }
 
-type Deposit struct {
-	From string
-	To   string
+func NewTransaction(id ID, transactionType Type, status Status, balance domain.Balance) Transaction {
+	return Transaction{
+		ID:      id,
+		Type:    transactionType,
+		Status:  status,
+		Balance: balance,
+	}
 }
