@@ -31,7 +31,7 @@ func (transfer NewTransfer) Create(
 		return fmt.Errorf("%s user type is not allowed", user.SHOPKEEPER)
 	}
 
-	_, err = transfer.transferService.Create(
+	err = transfer.transferService.Create(
 		Transfer{
 			TransactionID: transactionID,
 			From:          from,
