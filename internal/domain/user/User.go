@@ -17,6 +17,5 @@ type User struct {
 	Document string
 	Email    string
 	Password string
-	Balance  domain.Balance
 	Type     Type
 }

@@ -1,3 +1,5 @@
 package domain
 
-type AggregateID string
+import "github.com/google/uuid"
+
+type AggregateID uuid.UUID
