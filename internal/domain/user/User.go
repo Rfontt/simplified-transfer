@@ -13,8 +13,7 @@ type ID domain.AggregateID
 
 type User struct {
 	ID       ID
-	Name     string
-	LastName string
+	FullName string
 	Document string
 	Email    string
 	Password string
