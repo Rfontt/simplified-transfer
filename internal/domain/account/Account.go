@@ -36,3 +36,7 @@ func NewAccount(id AccountID, balance domain.MonetaryAmount) *Account {
 func (a Account) CanTransact() bool {
 	return a.Status == ACTIVE
 }
+
+func (a Account) HasBalance(amount domain.MonetaryAmount) bool {
+	return a.Balance.Value > amount.Value
+}

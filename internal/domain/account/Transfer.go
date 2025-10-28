@@ -37,7 +37,7 @@ func (t NewTransfer) CreateTransfer(from, to AccountID, amount domain.MonetaryAm
 		return err
 	}
 
-	if !fromAccount.CanTransact() {
+	if !fromAccount.CanTransact() || !fromAccount.HasBalance(amount) {
 		return errors.New("sender account is not allowed to perform transfers")
 	}
 
