@@ -11,6 +11,7 @@ type Deposit struct {
 	ID        uuid.UUID
 	AccountId AccountID
 	Amount    domain.MonetaryAmount
+	Status    AccountTransactionStatus
 }
 
 type NewDeposit struct {

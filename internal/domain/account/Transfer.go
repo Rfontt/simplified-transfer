@@ -9,20 +9,12 @@ import (
 	"github.com/google/uuid"
 )
 
-type TransferStatus string
-
-const (
-	PENDING   TransferStatus = "PENDING"
-	COMPLETED TransferStatus = "COMPLETED"
-	FAILED    TransferStatus = "FAILED"
-)
-
 type Transfer struct {
 	ID     uuid.UUID
 	From   AccountID
 	To     AccountID
 	Amount domain.MonetaryAmount
-	Status TransferStatus
+	Status AccountTransactionStatus
 }
 
 type NewTransfer struct {
