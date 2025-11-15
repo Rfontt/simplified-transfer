@@ -1,4 +1,18 @@
-![system business logic](./system_design/simplified_transfer_business_logic.png)
+# Simplified Transfer System 
+
+## Event Storming
+
+**Sticky notes** 
+![0.system simplified transfer - event storming - Knowledge.jpg](system_design/0.system%20simplified%20transfer%20-%20event%20storming%20-%20Knowledge.jpg)
+
+**User Identification Flow**
+![1.system simplified transfer - event storming.jpg](system_design/1.system%20simplified%20transfer%20-%20event%20storming.jpg)
+
+**Deposit Flow**
+![2.system simplified transfer - event storming.jpg](system_design/2.system%20simplified%20transfer%20-%20event%20storming.jpg)
+
+**Transfer Flow**
+![3. system simplified transfer - event storming.jpg](system_design/3.%20system%20simplified%20transfer%20-%20event%20storming.jpg)
 
 # Requirements
 
