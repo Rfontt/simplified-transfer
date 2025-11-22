@@ -14,6 +14,11 @@
 **Transfer Flow**
 ![3. system simplified transfer - event storming.jpg](system_design/3.%20system%20simplified%20transfer%20-%20event%20storming.jpg)
 
+# Articles explaining all project decisions process
+
+- https://medium.com/@rfontt/event-storming-questionar-organizar-e-decidir-assertivamente-ab00891b6b50
+- https://medium.com/@rfontt/event-storming-na-pr%C3%A1tica-2aaaf99c33fa
+
 # Requirements
 
 **functional:**
