@@ -1,1 +1,1 @@
-// Explain how to create a new aggregate basing in a Mermaid design
+// Explain how to create a new aggregate basing in user prompt requirements

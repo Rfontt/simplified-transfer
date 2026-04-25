@@ -1,0 +1,1 @@
+// Explain how to create a new aggregate basing in a Mermaid design
