@@ -1,6 +1,7 @@
 package account
 
 import (
+	"context"
 	"errors"
 	"event-driven-architecture/internal/domain"
 	"event-driven-architecture/internal/domain/user"
@@ -18,13 +19,13 @@ type Transfer struct {
 }
 
 type NewTransfer struct {
-	userService     user.UserService
-	transferService TransferService
-	accountService  AccountService
+	userService       user.UserService
+	transferService   TransferService
+	accountRepository AccountRepository
 }
 
-func (t NewTransfer) CreateTransfer(from, to AccountID, amount domain.MonetaryAmount) error {
-	fromAccount, err := t.accountService.GetOne(from)
+func (t NewTransfer) CreateTransfer(ctx context.Context, from, to AccountID, amount domain.MonetaryAmount) error {
+	fromAccount, err := t.accountRepository.ByID(ctx, from)
 	if err != nil {
 		return err
 	}
@@ -39,7 +40,7 @@ func (t NewTransfer) CreateTransfer(from, to AccountID, amount domain.MonetaryAm
 	}
 
 	if userFrom.Type == user.SHOPKEEPER {
-		return fmt.Errorf("%t user type is not allowed", userFrom.Type)
+		return fmt.Errorf("%v user type is not allowed", userFrom.Type)
 	}
 
 	if err := t.transferService.Create(from, to, amount); err != nil {

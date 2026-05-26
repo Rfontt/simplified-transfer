@@ -1,28 +1,30 @@
 package query
 
 import (
+	"context"
+
 	"event-driven-architecture/internal/domain"
 	"event-driven-architecture/internal/domain/account"
 )
 
 type UserBalanceQueryHandler struct {
-	accountService account.AccountService
+	accountQueries account.AccountQueries
 }
 
-func NewUserBalanceQueryHandler(accountService account.AccountService) *UserBalanceQueryHandler {
+func NewUserBalanceQueryHandler(accountQueries account.AccountQueries) *UserBalanceQueryHandler {
 	return &UserBalanceQueryHandler{
-		accountService: accountService,
+		accountQueries: accountQueries,
 	}
 }
 
-func (h *UserBalanceQueryHandler) Handle(query UserBalanceQuery) (*UserBalanceQueryProjection, error) {
+func (h *UserBalanceQueryHandler) Handle(ctx context.Context, query UserBalanceQuery) (*UserBalanceQueryProjection, error) {
 	userAggregateId, err := domain.ToAggregateID(query.UserID)
 
 	if err != nil {
 		return nil, err
 	}
 
-	acc, err := h.accountService.GetOwnerBalance(userAggregateId)
+	acc, err := h.accountQueries.OwnerBalance(ctx, userAggregateId)
 
 	if err != nil {
 		return nil, err

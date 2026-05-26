@@ -1,6 +1,8 @@
 package user
 
-type UserRepostiory interface {
-	GetOne(id ID) (User, error)
-	Save(User) error
+import "context"
+
+type UserRepository interface {
+	ByID(ctx context.Context, id ID) (*User, error)
+	Add(ctx context.Context, user *User) error
 }

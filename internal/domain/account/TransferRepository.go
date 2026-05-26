@@ -1,10 +1,10 @@
 package account
 
 import (
-	"github.com/google/uuid"
+	"context"
 )
 
 type TransferRepository interface {
-	GetOne(id uuid.UUID) (Transfer, error)
-	Save(transfer *Transfer) error
+	ByID(ctx context.Context, id string) (*Transfer, error)
+	Add(ctx context.Context, transfer *Transfer) error
 }

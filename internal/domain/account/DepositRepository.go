@@ -1,10 +1,8 @@
 package account
 
-import (
-	"github.com/google/uuid"
-)
+import "context"
 
 type DepositRepository interface {
-	GetOne(id uuid.UUID) (Deposit, error)
-	Create(deposit *Deposit) error
+	ByID(ctx context.Context, id string) (*Deposit, error)
+	Add(ctx context.Context, deposit *Deposit) error
 }
