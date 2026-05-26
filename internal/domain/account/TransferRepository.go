@@ -7,4 +7,6 @@ import (
 type TransferRepository interface {
 	ByID(ctx context.Context, id string) (*Transfer, error)
 	Add(ctx context.Context, transfer *Transfer) error
+
+	AllTransfers(ctx context.Context) ([]*Transfer, error)
 }
