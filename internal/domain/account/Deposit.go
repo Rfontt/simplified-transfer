@@ -20,13 +20,13 @@ type NewDeposit struct {
 	service   DepositService
 }
 
-func (deposit NewDeposit) Create() error {
+func (deposit NewDeposit) Create() (*Deposit, error) {
 
-	if deposit.amount.Value <= 0 {
-		return errors.New("amount must be greater than zero")
+	if !deposit.amount.IsPositive() {
+		return nil, errors.New("amount must be greater than zero")
 	}
 
-	err := deposit.service.Create(
+	result, err := deposit.service.DepositFunds(
 		deposit.accountId,
 		deposit.amount,
 	)
@@ -34,8 +34,8 @@ func (deposit NewDeposit) Create() error {
 	// TODO(rfontt): if it throw an error so emit deposit event error
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return result, nil
 }

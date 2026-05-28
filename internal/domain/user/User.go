@@ -19,3 +19,7 @@ type User struct {
 	Password string
 	Type     Type
 }
+
+func (u User) CanTransfer() bool {
+	return u.Type == COMMON
+}

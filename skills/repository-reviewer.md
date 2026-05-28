@@ -1,5 +1,5 @@
 ---
-name: repository-reviewer
+name: ddd-repository-reviewer
 description: Expert reviewer for Domain-Driven Design repositories in Go. Validates repository design against Evans and Vernon's DDD principles. Use when creating, reviewing, or validating Go repositories in your DDD project. Provides assertive feedback on the 12 DDD best practices, identifies anti-patterns, suggests proper method names using Ubiquitous Language, and determines if something should be a Repository or Query Object.
 ---
 

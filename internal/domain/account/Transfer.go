@@ -19,35 +19,36 @@ type Transfer struct {
 }
 
 type NewTransfer struct {
-	userService       user.UserService
+	userRepository    user.UserRepository
 	transferService   TransferService
 	accountRepository AccountRepository
 }
 
-func (t NewTransfer) CreateTransfer(ctx context.Context, from, to AccountID, amount domain.MonetaryAmount) error {
+func (t NewTransfer) CreateTransfer(ctx context.Context, from, to AccountID, amount domain.MonetaryAmount) (*Transfer, error) {
 	fromAccount, err := t.accountRepository.ByID(ctx, from)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !fromAccount.CanTransact() || !fromAccount.HasBalance(amount) {
-		return errors.New("sender account is not allowed to perform transfers")
+		return nil, errors.New("sender account is not allowed to perform transfers")
 	}
 
-	userFrom, err := t.userService.GetOne(fromAccount.OwnerId)
+	userFrom, err := t.userRepository.ByID(ctx, fromAccount.OwnerId)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if userFrom.Type == user.SHOPKEEPER {
-		return fmt.Errorf("%v user type is not allowed", userFrom.Type)
+	if !userFrom.CanTransfer() {
+		return nil, fmt.Errorf("%v user type is not allowed to transfer", userFrom.Type)
 	}
 
-	if err := t.transferService.Create(from, to, amount); err != nil {
-		return err
+	result, err := t.transferService.TransferFunds(from, to, amount)
+	if err != nil {
+		return nil, err
 	}
 
 	// TODO: emit domain events here
 
-	return nil
+	return result, nil
 }

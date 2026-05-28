@@ -3,5 +3,5 @@ package account
 import "event-driven-architecture/internal/domain"
 
 type DepositService interface {
-	Create(accountId AccountID, amount domain.MonetaryAmount) error
+	DepositFunds(accountId AccountID, amount domain.MonetaryAmount) (*Deposit, error)
 }
