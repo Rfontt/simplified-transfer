@@ -10,109 +10,219 @@ The architecture was designed using event storming; see the event storming diagr
 
 ## Architecture: DDD + CQRS + Event-Driven
 
+### Core Concepts
+
+**Bounded Contexts**: The system is divided into two main contexts:
+- **User Context** (`internal/domain/user`): Identity, user types (COMMON/SHOPKEEPER), authentication
+- **Account Context** (`internal/domain/account`): Wallet balance, transactions (deposits & transfers), transaction status
+
+Each context has its own aggregate root and repository interfaces. Events from one context may influence commands in another.
+
 ### High-Level Structure
 
 ```
 internal/
-├── domain/              # Core domain logic (entities, aggregates, domain events)
-│   ├── user/           # User aggregate root (COMMON and SHOPKEEPER types)
-│   └── account/        # Account aggregate (balance, transfers, deposits)
-├── application/         # Use cases implementing CQRS
+├── domain/                              # Core business logic
+│   ├── user/                           # User aggregate root
+│   │   ├── User.go                     # Aggregate entity
+│   │   ├── UserRepository.go           # Repository interface
+│   │   ├── UserDomainEvent.go          # Domain events
+│   │   └── UserExceptions.go           # Business rule violations
+│   ├── account/                        # Account aggregate root
+│   │   ├── Account.go                  # Aggregate entity
+│   │   ├── Deposit.go, Transfer.go     # Value entities within aggregate
+│   │   ├── *Repository.go              # Repository interfaces
+│   │   ├── *DomainEvent.go             # Domain events
+│   │   ├── *Service.go                 # Domain services
+│   │   └── AccountQueries.go           # Read-side queries (stubs)
+│   ├── AggregateEvent.go               # Generic event interface
+│   ├── AggregateID.go                  # ID abstraction
+│   └── MonetaryAmount.go               # Value object for amounts
+├── application/                         # Use cases (CQRS)
 │   └── user/
-│       ├── command/    # Write operations (commands and handlers)
-│       └── query/      # Read operations (queries and projections)
-└── adapters/           # External service integrations (notification, authorization)
+│       ├── command/                    # Write operations
+│       │   ├── UserDepositMoneyCommand*
+│       │   └── UserTransferMoneyCommand*
+│       └── query/                      # Read operations
+│           ├── UserBalanceQuery*
+│           └── UserBalanceQueryProjection.go
+└── adapters/                            # External integrations (stub)
 ```
 
 ### Key Design Patterns
 
-1. **Aggregate Roots**: `User` and `Account` are separate aggregates with their own repositories
-   - User aggregate: identity, type (COMMON/SHOPKEEPER)
-   - Account aggregate: balance, transaction status
+1. **Event Sourcing**: State changes are represented as immutable domain events
+   - Events are the source of truth; entities are reconstructed from event history
+   - Events implement `AggregateEvent[T]` with timestamp and aggregate ID
+   - Commands trigger events; handlers apply events to aggregates
 
-2. **Domain Events**: Events represent state changes in aggregates
-   - `UserDomainEvent` (e.g., UserCreated)
-   - `AccountDomainEvent` (e.g., DepositCreated, TransferCreated)
-   - Events implement the `AggregateEvent[T]` interface
+2. **Aggregate Roots**: Each bounded context has one aggregate root
+   - User aggregate: manages user identity and type
+   - Account aggregate: manages balance and transactions (via Deposit, Transfer entities)
+   - Repositories enforce aggregate consistency boundaries
 
-3. **Commands & Handlers**: Separate write logic from read logic
-   - Commands: `UserDepositMoneyCommand`, `UserTransferMoneyCommand`
-   - Handlers: Process commands and emit domain events
+3. **Commands & Handlers**: Separate write operations from reads
+   - Commands: immutable request objects (e.g., `UserDepositMoneyCommand`)
+   - Handlers: validate commands against aggregate rules, emit events
+   - Currently: handlers are stubs; full event sourcing not yet integrated
 
-4. **Value Objects**: Immutable, domain-specific types
-   - `MonetaryAmount` (currency + value)
-   - `AccountTransactionStatus` enum (PENDING, COMPLETED, FAILED)
+4. **Repositories**: Hide persistence details
+   - Defined as interfaces in domain; implementations are external adapters
+   - Currently: in-memory or stubbed; PostgreSQL/MongoDB planned for later
 
-5. **Repository Pattern**: Abstract data access
-   - `UserRepository`, `AccountRepository`, `DepositRepository`, `TransferRepository`
+5. **Domain Services**: Business logic that spans aggregates
+   - `DepositService`, `TransferService`: validate business rules
+   - Called from command handlers before state changes
 
-### Database Strategy
-
-The system uses CQRS with separate databases:
-- **Commands**: PostgreSQL (write operations, transactional)
-- **Queries**: MongoDB (read operations, eventually consistent)
+6. **Value Objects**: Immutable, domain-specific types
+   - `MonetaryAmount`: currency + amount
+   - `AccountTransactionStatus`: enum for PENDING/COMPLETED/FAILED
 
 ## Development Commands
 
-### Build
-```bash
-go build ./cmd/simplified-transfer
-```
-
 ### Test
 ```bash
-go test ./...
-go test ./internal/domain/user -v
-go test ./internal/application/user/command -v
+go test ./...                           # Run all tests
+go test ./internal/domain/... -v        # Run domain tests with verbose output
+go test ./internal/application/... -v   # Run application tests
+go test -run TestName -v                # Run a specific test
+go test ./... -cover                    # Show coverage
 ```
 
-### Run (stub - needs implementation)
+### Build
 ```bash
-go run ./cmd/simplified-transfer/main.go
+go build ./cmd/simplified-transfer/     # Build the main binary
 ```
 
-### Linting
+### Format & Lint
 ```bash
-go fmt ./...
+go fmt ./...                            # Format all Go files
+go vet ./...                            # Run static analysis (optional)
 ```
+
+### Run
+The application is currently in early stages. Main entry point is `cmd/simplified-transfer/main.go` (implementation pending).
 
 ## Code Organization Patterns
 
-### Domain Files
-- **Aggregates**: Define the core business entity (e.g., `User.go`, `Deposit.go`)
-- **Services**: Business logic interfaces (e.g., `UserService.go`)
-- **Events**: Domain events representing state changes (e.g., `UserDomainEvent.go`)
-- **Exceptions**: Business rule violations (e.g., `UserExceptions.go`)
-- **Repositories**: Data access interfaces (e.g., `UserRepository.go`)
+### Domain Layer (`internal/domain/`)
+The domain layer contains pure business logic with no external dependencies.
 
-### Application Files
-- **Commands**: Request objects representing user intent
-- **CommandHandlers**: Process commands, update aggregates, emit events
-- **Queries**: Read model requests
-- **Projections**: Build read-optimized views from domain events
+**Aggregate Files** (e.g., `User.go`, `Account.go`, `Transfer.go`):
+- Define the entity/aggregate, its identity, and valid state transitions
+- Methods represent business operations on the aggregate
+- Must not directly access repositories; changes are signaled via events
 
-### Important Constraints
+**Event Files** (e.g., `UserDomainEvent.go`, `AccountDomainEvent.go`):
+- Immutable event types implementing `AggregateEvent[T]`
+- Each event represents a fact that occurred (past tense: "UserCreated", "MoneyDeposited")
+- Include all data needed to reconstruct aggregate state
+- Never throw events away; they are the audit trail
 
-1. **Functional Requirements**:
-   - Users must have: full name, document (CPF/CNPJ), email, password
-   - COMMON users can transfer; SHOPKEEPER users can only receive
-   - All transfers must be authorized via the external gateway (https://util.devi.tools/api/v2/authorize)
-   - Transfer operations must be transactional (money refunded on failure)
+**Repository Interfaces** (e.g., `UserRepository.go`):
+- Define abstract contract for persistence (no implementation)
+- Methods: `GetOne(id)` for reads, `Save(entity)` for writes
+- Implementations are external adapters (stub for now)
 
-2. **Non-Functional Requirements**:
-   - CPF/CNPJ and email must be unique
-   - Users are notified on transfer receipt (SMS or email)
-   - Notification service is optional; failures should use DLQ (dead-letter queue)
-   - System must be available and partition-tolerant (AP in CAP theorem)
+**Service Files** (e.g., `DepositService.go`):
+- Encapsulate business rules that span multiple aggregates
+- Validate pre-conditions before state changes
+- Called from command handlers, not from entities
+
+**Exceptions/Errors** (e.g., `UserExceptions.go`):
+- Domain-specific error types representing business rule violations
+- Used in validation; command handlers should check and reject invalid commands
+
+**Value Objects** (e.g., `MonetaryAmount.go`):
+- Immutable, domain-specific types with meaningful equality
+- Have no identity; equality is based on their values
+
+### Application Layer (`internal/application/`)
+Orchestrates domain logic; implements use cases via CQRS.
+
+**Commands** (e.g., `UserDepositMoneyCommand.go`):
+- Immutable request objects representing user intent
+- Contain only the data needed to perform the operation
+- No business logic; just data transfer objects
+
+**Command Handlers** (e.g., `UserDepositMoneyCommandHandler.go`):
+- Load aggregate from repository
+- Validate command against domain service rules
+- Call aggregate methods to trigger state changes
+- Emit resulting domain events
+- Save aggregate back to repository
+- Note: Currently stubbed; will integrate with event store
+
+**Queries** (e.g., `UserBalanceQuery.go`):
+- Read-only requests for data
+- No side effects; executed against read models (eventually consistent)
+
+**Projections** (e.g., `UserBalanceQueryProjection.go`):
+- Build and maintain read-optimized views from domain events
+- Subscribed to event streams; update on each event
+- Currently stubbed; will integrate with MongoDB later
+
+## Business Requirements
+
+### Functional
+
+**User Entity**:
+- Required fields: full name, document (CPF/CNPJ), email, password
+- User type: COMMON (can send & receive transfers) or SHOPKEEPER (receive only)
+- Each user has an associated Account with a balance
+
+**Transfer Rules**:
+- Only COMMON users can initiate transfers
+- SHOPKEEPER users can only receive transfers
+- Sender must have sufficient balance
+- All transfers must be authorized by external gateway: `https://util.devi.tools/api/v2/authorize`
+- If authorization fails or notification fails, transfer is refunded and marked FAILED
+
+**Deposit Rules**:
+- Any user can receive deposits (e.g., initial funding)
+- Deposits add to account balance
+
+### Non-Functional
+
+- CPF/CNPJ and email must be unique across users
+- Transfer operations must be ACID (transactional); on failure, money is refunded
+- User notification (SMS or email) on successful transfer receipt
+- Notification service may be unavailable → use DLQ (dead-letter queue) for retry
+- System prioritizes **Availability** and **Partition Tolerance** (AP in CAP theorem); eventual consistency is acceptable
+- Database strategy: PostgreSQL for commands (transactional), MongoDB for queries (read models)
 
 ## Important Notes
 
-- The project is in early stages with skeletal code (~330 LOC across 24 files)
-- Many command handlers and query projections are stubs (empty function bodies with TODOs)
-- Event handlers need implementation for event sourcing
-- No HTTP/API layer is implemented yet; focus is on domain and application layers
-- Dependencies: only `github.com/google/uuid v1.6.0` for ID generation
+**Project Status**:
+- Early-stage implementation with ~350 LOC across 27 files
+- Domain and application layers are skeletal; infrastructure (persistence, HTTP, event store) is stubbed
+- No database integrations yet; full CQRS (PostgreSQL + MongoDB) is planned
+- No external dependencies except `google/uuid`
 
-## Recent Work
+**Implementation Gaps** (intended for future work):
+- Event sourcing: events defined but not persisted/replayed; aggregates don't reconstruct from event history
+- Command handlers: mostly stubs; need to emit events and integrate with repository/event store
+- Projections: query projections not connected to event stream subscribers
+- Event handlers: no subscriptions to event streams for cross-context communication
+- HTTP API: no web layer; tests are unit/integration only
+- Adapters: notification, authorization services not implemented
 
-The `feat/agent` branch is currently being developed with AI structure and domain events. Check commit history for context on recent changes.
+**Design Decisions**:
+- Repositories are interfaces in the domain; implementations are external (to avoid coupling to frameworks)
+- Value objects (e.g., `MonetaryAmount`) should be compared by value, not identity
+- Domain events are the source of truth; all state changes flow through events
+- Commands should fail fast on invalid input; handler should not emit partial state
+
+## Development Patterns
+
+When adding new features:
+1. **Define domain events** first (what happened?)
+2. **Add aggregate methods** to trigger the event (how does state change?)
+3. **Create commands & handlers** to orchestrate the change (who initiates it?)
+4. **Add domain services** to validate complex rules (should this be allowed?)
+5. Don't add projections until event sourcing is integrated (they need the event stream)
+
+When testing:
+- Unit tests exercise domain logic (entities, services, value objects) without persistence
+- Integration tests may use in-memory implementations of repositories
+- Currently no persistence layer to test; mock repositories instead
