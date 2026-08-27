@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// NewRouter wires the HTTP routes for the account API.
 func NewRouter(createAccount command.CreateAccountUseCase) *gin.Engine {
 	router := gin.Default()
 	controller := NewAccountController(createAccount)

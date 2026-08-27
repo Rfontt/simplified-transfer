@@ -132,8 +132,6 @@ func TestCreateAccountCommandHandler_OwnerNotFound(t *testing.T) {
 	}
 }
 
-// Compile-time check that the handler satisfies the use-case port.
 var _ CreateAccountUseCase = (*CreateAccountCommandHandler)(nil)
 
-// Compile-time check that the fake satisfies the repository port.
 var _ account.AccountRepository = (*fakeAccountRepository)(nil)

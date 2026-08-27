@@ -12,8 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// AccountRepository is the PostgreSQL implementation of the domain
-// account.AccountRepository port.
 type AccountRepository struct {
 	db *sql.DB
 }
@@ -34,8 +32,6 @@ FROM accounts ORDER BY created_at`
 )
 
 func (r *AccountRepository) Add(ctx context.Context, acc *account.Account) error {
-	// uuid.UUID implements driver.Valuer; the defined ID types do not, so we
-	// convert explicitly before handing values to database/sql.
 	_, err := r.db.ExecContext(ctx, insertAccountSQL,
 		uuid.UUID(acc.ID),
 		uuid.UUID(acc.OwnerId),
@@ -100,8 +96,6 @@ func scanAccount(s rowScanner) (*account.Account, error) {
 	return &acc, nil
 }
 
-// translateError maps PostgreSQL constraint violations to domain errors so the
-// calling application layer (and adapters above it) stays DB-agnostic.
 func translateError(err error, ownerID user.ID) error {
 	var pgErr *pgconn.PgError
 	if !errors.As(err, &pgErr) {

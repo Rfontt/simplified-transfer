@@ -9,8 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// AccountController is a driving adapter exposing account use cases over HTTP.
-// It depends only on the application port, not on domain types.
 type AccountController struct {
 	createAccount command.CreateAccountUseCase
 }

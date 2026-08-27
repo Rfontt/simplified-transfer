@@ -12,14 +12,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// CreateAccountUseCase is the driving port consumed by adapters (HTTP) to
-// create accounts without depending on the concrete handler.
 type CreateAccountUseCase interface {
 	Handle(ctx context.Context, cmd CreateAccountCommand) (*CreateAccountResult, error)
 }
 
-// CreateAccountResult is the transport-agnostic result returned by the use
-// case, so the domain Account entity does not leak into adapters.
 type CreateAccountResult struct {
 	ID       string
 	OwnerID  string
@@ -27,7 +23,6 @@ type CreateAccountResult struct {
 	Balance  float64
 }
 
-// CreateAccountCommandHandler implements CreateAccountUseCase.
 type CreateAccountCommandHandler struct {
 	accounts account.AccountRepository
 }

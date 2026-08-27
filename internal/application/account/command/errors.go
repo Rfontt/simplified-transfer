@@ -2,9 +2,6 @@ package command
 
 import "errors"
 
-// Application-level error sentinels exposed to driving adapters (e.g. HTTP).
-// The handler translates domain/DB errors into these so the transport layer
-// does not depend on domain types.
 var (
 	ErrAccountAlreadyExists = errors.New("account already exists for this owner")
 	ErrOwnerNotFound        = errors.New("owner not found")

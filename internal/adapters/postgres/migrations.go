@@ -12,7 +12,6 @@ import (
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
-// Migrate applies all pending SQL migrations to the database.
 func Migrate(ctx context.Context, db *sql.DB) error {
 	migrations, err := fs.Sub(migrationsFS, "migrations")
 	if err != nil {
