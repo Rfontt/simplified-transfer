@@ -24,9 +24,10 @@ type Account struct {
 	CreatedAt time.Time
 }
 
-func NewAccount(id AccountID, balance domain.MonetaryAmount) *Account {
+func NewAccount(id AccountID, ownerID user.ID, balance domain.MonetaryAmount) *Account {
 	return &Account{
 		ID:        id,
+		OwnerId:   ownerID,
 		Balance:   balance,
 		Status:    ACTIVE,
 		CreatedAt: time.Now(),
