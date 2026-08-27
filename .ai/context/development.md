@@ -24,6 +24,7 @@ Recorded: 2026-08-26
 - Events named in past tense: `UserCreated`, `MoneyDeposited`.
 - Repositories = interfaces in the domain; implementation in adapters.
 - Commands fail fast; handlers do not emit partial state.
+- No comments in code (Rita's preference). Rely on clear naming. Keep only functional annotations (e.g. `//go:embed`, `-- +goose Up`).
 
 ## Order when adding a feature
 1. Define domain events (what happened?)
