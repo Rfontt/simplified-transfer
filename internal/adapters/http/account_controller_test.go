@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"event-driven-architecture/internal/adapters/http/response"
 	"event-driven-architecture/internal/application/account/command"
 
 	"github.com/gin-gonic/gin"
@@ -53,7 +54,7 @@ func TestCreateAccount_Success(t *testing.T) {
 		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var resp createAccountResponse
+	var resp response.CreateAccountResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}

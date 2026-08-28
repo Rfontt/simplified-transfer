@@ -20,7 +20,7 @@ Recorded: 2026-08-26
 - HTTP: Gin. Postgres: pgx (stdlib driver) + goose migrations. Tests: sqlmock (adapter error mapping).
 
 ## Code conventions
-- Pure domain, no external dependencies (except `google/uuid`).
+- HTTP adapters follow SRP: controllers are thin (bind → call use case → write), request DTOs in `request/`, response DTOs in `response/`, and error→HTTP-status mapping in a dedicated `error_handler.go`.- Pure domain, no external dependencies (except `google/uuid`).
 - Events named in past tense: `UserCreated`, `MoneyDeposited`.
 - Repositories = interfaces in the domain; implementation in adapters.
 - Commands fail fast; handlers do not emit partial state.

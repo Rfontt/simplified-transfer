@@ -1,9 +1,10 @@
 package http
 
 import (
-	"errors"
 	"net/http"
 
+	"event-driven-architecture/internal/adapters/http/request"
+	"event-driven-architecture/internal/adapters/http/response"
 	"event-driven-architecture/internal/application/account/command"
 
 	"github.com/gin-gonic/gin"
@@ -17,21 +18,8 @@ func NewAccountController(createAccount command.CreateAccountUseCase) *AccountCo
 	return &AccountController{createAccount: createAccount}
 }
 
-type createAccountRequest struct {
-	OwnerID  string  `json:"owner_id" binding:"required"`
-	Currency string  `json:"currency" binding:"required"`
-	Balance  float64 `json:"balance"`
-}
-
-type createAccountResponse struct {
-	ID       string  `json:"id"`
-	OwnerID  string  `json:"owner_id"`
-	Currency string  `json:"currency"`
-	Balance  float64 `json:"balance"`
-}
-
 func (c *AccountController) Create(ctx *gin.Context) {
-	var req createAccountRequest
+	var req request.CreateAccountRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
@@ -43,29 +31,9 @@ func (c *AccountController) Create(ctx *gin.Context) {
 		Balance:  req.Balance,
 	})
 	if err != nil {
-		c.writeError(ctx, err)
+		writeError(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, createAccountResponse{
-		ID:       result.ID,
-		OwnerID:  result.OwnerID,
-		Currency: result.Currency,
-		Balance:  result.Balance,
-	})
-}
-
-func (c *AccountController) writeError(ctx *gin.Context, err error) {
-	switch {
-	case errors.Is(err, command.ErrAccountAlreadyExists):
-		ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-	case errors.Is(err, command.ErrOwnerNotFound):
-		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-	case errors.Is(err, command.ErrInvalidOwnerID),
-		errors.Is(err, command.ErrInvalidCurrency),
-		errors.Is(err, command.ErrInvalidBalance):
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	default:
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-	}
+	ctx.JSON(http.StatusCreated, response.NewCreateAccountResponse(result))
 }
