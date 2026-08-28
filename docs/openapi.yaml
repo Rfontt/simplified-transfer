@@ -1,0 +1,123 @@
+openapi: 3.0.3
+info:
+  title: Simplified Transfer API
+  version: 0.1.0
+  description: |
+    Account creation endpoint for the simplified transfer system
+    (DDD + CQRS + Event Sourcing study project).
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+tags:
+  - name: accounts
+    description: Account operations
+
+paths:
+  /accounts:
+    post:
+      tags:
+        - accounts
+      summary: Create a new account
+      description: |
+        Creates an account for an already-existing user. Each user can own at
+        most one account.
+      operationId: createAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountRequest'
+            examples:
+              account:
+                summary: Create a BRL account
+                value:
+                  owner_id: 3b2a1d9c-5f4e-4a7b-9c0d-8e6f5a4b3c2d
+                  currency: BRL
+                  balance: 0
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '400':
+          description: |
+            Invalid request. The body is malformed, the owner_id is not a valid
+            UUID, the currency is empty, or the balance is negative.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: The owner referenced by owner_id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: An account already exists for this owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    CreateAccountRequest:
+      type: object
+      required:
+        - owner_id
+        - currency
+      properties:
+        owner_id:
+          type: string
+          format: uuid
+          description: ID of the existing user that owns the account
+        currency:
+          type: string
+          description: Account currency (e.g. BRL, USD)
+          example: BRL
+        balance:
+          type: number
+          format: double
+          description: Initial balance (>= 0). Defaults to 0.
+          default: 0
+          example: 0
+    Account:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        owner_id:
+          type: string
+          format: uuid
+        currency:
+          type: string
+          example: BRL
+        balance:
+          type: number
+          format: double
+          example: 0
+      required:
+        - id
+        - owner_id
+        - currency
+        - balance
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+      required:
+        - error
