@@ -44,7 +44,7 @@ func (h *CreateAccountCommandHandler) Handle(ctx context.Context, cmd CreateAcco
 		domain.MonetaryAmount{Currency: cmd.Currency, Value: cmd.Balance},
 	)
 	if err != nil {
-		return nil, mapAccountCreationValidationError(err)
+		return nil, err
 	}
 
 	if err := h.accounts.Add(ctx, acc); err != nil {
@@ -66,17 +66,4 @@ func (h *CreateAccountCommandHandler) Handle(ctx context.Context, cmd CreateAcco
 		Currency: acc.Balance.Currency,
 		Balance:  cmd.Balance,
 	}, nil
-}
-
-func mapAccountCreationValidationError(err error) error {
-	var invalidCurrency *account.InvalidCurrencyError
-	var invalidBalance *account.InvalidBalanceError
-	switch {
-	case errors.As(err, &invalidCurrency):
-		return fmt.Errorf("%w: %v", ErrInvalidCurrency, err)
-	case errors.As(err, &invalidBalance):
-		return fmt.Errorf("%w: %v", ErrInvalidBalance, err)
-	default:
-		return err
-	}
 }

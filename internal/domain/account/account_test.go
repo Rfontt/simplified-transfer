@@ -1,6 +1,7 @@
 package account
 
 import (
+	"errors"
 	"testing"
 
 	"event-driven-architecture/internal/domain"
@@ -41,13 +42,22 @@ func TestNewAccount_InvalidBalance(t *testing.T) {
 	ownerID := user.ID(uuid.New())
 
 	for _, currency := range []string{"", "  "} {
-		if _, err := NewAccount(id, ownerID, domain.MonetaryAmount{Currency: currency, Value: 100}); err == nil {
-			t.Errorf("expected error for currency %q", currency)
-		}
+		_, err := NewAccount(id, ownerID, domain.MonetaryAmount{Currency: currency, Value: 100})
+		assertConstraintError(t, err, "currency")
 	}
 
-	if _, err := NewAccount(id, ownerID, domain.MonetaryAmount{Currency: "BRL", Value: -1}); err == nil {
-		t.Error("expected error for negative balance")
+	_, err := NewAccount(id, ownerID, domain.MonetaryAmount{Currency: "BRL", Value: -1})
+	assertConstraintError(t, err, "balance")
+}
+
+func assertConstraintError(t *testing.T, err error, field string) {
+	t.Helper()
+	var invalid *domain.ConstraintValidationError
+	if !errors.As(err, &invalid) {
+		t.Fatalf("expected ConstraintValidationError, got %v", err)
+	}
+	if invalid.Field != field {
+		t.Errorf("expected field %q, got %q", field, invalid.Field)
 	}
 }
 

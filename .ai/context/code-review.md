@@ -32,17 +32,23 @@ references.
   factory/aggregate, persist, and map errors. No business logic, no validation,
   no formatting rules.
 - **[DDD-03] Domain layer is pure.** Flag any import in `internal/domain`
-  beyond `github.com/google/uuid` — no framework, no persistence, no HTTP, no
-  crypto implementation. Infrastructure (hashers, DB, HTTP) lives in adapters,
+  beyond `github.com/google/uuid` and pure validation libraries (e.g.
+  `paemuri/brdoc`) — no framework, no persistence, no HTTP, no crypto
+  implementation. Infrastructure (hashers, DB, HTTP) lives in adapters,
   behind ports defined in the domain.
-- **[DDD-04] Concepts with rules are value objects, not raw strings.** Flag
-  domain concepts that carry behavior/validation as raw `string` fields —
-  `Document` (CPF/CNPJ), `Email`, `MonetaryAmount`, statuses/enums. VOs
-  validate in their constructors and are immutable.
-- **[DDD-05] 3-layer error chain respected.** Adapter maps infra errors → domain
-  error type → application sentinel (`errors.go`) → HTTP status. Flag the HTTP
-  adapter importing domain, or application sentinels duplicating rules instead
-  of mapping them.
+- **[DDD-04] Domain rules centralized in the domain, not scattered.** Flag
+  validation/business rules implemented in handlers, adapters, or duplicated
+  across use cases. All field rules live in a single `validateFields` method
+  on the aggregate, violations thrown as `ConstraintValidationError{Field}`
+  (ADR-0007). A full value-object type is justified only when the concept
+  carries behavior beyond validation (e.g. `MonetaryAmount` arithmetic,
+  statuses with transitions) — not for plain fields with a simple rule.
+- **[DDD-05] Error chain respected.** Adapter maps infra errors → domain error
+  type → application sentinel → HTTP status. Field-constraint violations flow
+  domain → HTTP directly via the shared `domain.ConstraintValidationError`
+  (→ 400), with no sentinel mapping. The HTTP adapter may import the root
+  `domain` package for shared types; flag adapters importing bounded-context
+  domain packages, or sentinels duplicating rules instead of mapping them.
 - **[DDD-06] Events are past-tense and the source of truth.** Flag event names
   not in past tense (`UserCreate`), or state changes that bypass events in an
   event-sourced aggregate.

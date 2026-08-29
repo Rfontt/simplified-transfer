@@ -9,22 +9,29 @@ Recorded: 2026-08-29
 - `CreateAccountCommand` — immutable data `{OwnerID string, Currency string, Balance float64}`.
 - `CreateAccountCommandHandler` — constructor takes the `account.AccountRepository` port; implements the `CreateAccountUseCase` interface (`Handle(ctx, cmd) (*CreateAccountResult, error)`), which is the port consumed by the HTTP adapter (DIP).
 - `CreateAccountResult` `{ID, OwnerID, Currency, Balance string/float64}` — application-level DTO.
-- Boundary handling: ownerID parses as UUID → `ErrInvalidOwnerID`. Currency/balance rules live in `account.NewAccount` (ADR-0006); handler maps `InvalidCurrencyError`/`InvalidBalanceError` → `ErrInvalidCurrency`/`ErrInvalidBalance`.
-- Sentinel errors in `errors.go`: `ErrAccountAlreadyExists`, `ErrOwnerNotFound`, `ErrInvalidOwnerID`, `ErrInvalidCurrency`, `ErrInvalidBalance` (plain `errors.New`, compared with `errors.Is`).
+- Boundary handling: ownerID parses as UUID → `ErrInvalidOwnerID`. Currency/balance
+  rules live in `account.validateFields` (ADR-0007); validation errors pass through
+  untouched as `domain.ConstraintValidationError` → HTTP 400.
+- Sentinel errors in `errors.go`: `ErrAccountAlreadyExists`, `ErrOwnerNotFound`,
+  `ErrInvalidOwnerID` (plain `errors.New`, compared with `errors.Is`).
 
-## Error-mapping chain (three layers)
+## Error-mapping chain
 1. Postgres adapter: DB error (pg code) → domain error type (`AccountAlreadyExistsError`, `OwnerNotFoundError`).
-2. Command handler: domain error type → application sentinel error, wrapped with `%w`.
-3. HTTP adapter: sentinel error → HTTP status (see `.ai/context/http-api.md`).
+2. Command handler: infra-mapped domain errors → application sentinel, wrapped with `%w`; **validation errors pass through untouched** (no mapping).
+3. HTTP adapter: sentinel → HTTP status; `domain.ConstraintValidationError` → 400 directly.
 
-This keeps the HTTP adapter free of domain imports and lets the handler own business-meaningful errors.
+Sentinels remain only for infra-mapped errors (already-exists → 409, not-found → 404, invalid owner ID → 400); the HTTP adapter may import the root `domain` package for the shared error type.
 
 ## User commands (`internal/application/user/command`)
 - `CreateUserCommand` — immutable data `{FullName, Document, Email, Password, Type string}`.
 - `CreateUserCommandHandler` — constructor takes the `user.UserRepository` and `user.PasswordHasher` ports; implements the `CreateUserUseCase` interface (`Handle(ctx, cmd) (*CreateUserResult, error)`), the port consumed by the HTTP adapter.
 - `CreateUserResult` `{ID, FullName, Document, Email, Type}` — application-level DTO; password hash never leaves the handler.
-- Boundary handling (fail-fast): handler builds/validates ALL value objects (`NewFullName`, `NewDocument`, `NewEmail`, `ParseType`, `NewPassword`) BEFORE hashing, then `hasher.Hash`, then `NewUser` assembles. Invalid input never pays a bcrypt hash. Handler maps domain errors → sentinels (ADR-0006).
-- Sentinel errors in `errors.go`: `ErrUserAlreadyExists`, `ErrInvalidFullName`, `ErrInvalidDocument`, `ErrInvalidEmail`, `ErrInvalidPassword`, `ErrInvalidType`.
+- Boundary handling (fail-fast): handler generates the ID and calls the domain factory
+  `user.NewUser(id, hasher, ...)` — which validates ALL fields (`validateFields`),
+  normalizes, then hashes. Invalid input never pays a bcrypt hash. Validation errors
+  pass through untouched as `domain.ConstraintValidationError` → HTTP 400 (ADR-0007).
+- Sentinel errors in `errors.go`: `ErrUserAlreadyExists` (plain `errors.New`, compared
+  with `errors.Is`).
 - `UserDepositMoneyCommand`, `UserTransferMoneyCommand` still exist; their handler files remain empty stubs. Not wired.
 
 ## User queries (`internal/application/user/query`)

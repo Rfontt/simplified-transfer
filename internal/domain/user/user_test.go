@@ -1,14 +1,32 @@
 package user
 
 import (
+	"errors"
 	"testing"
+
+	"event-driven-architecture/internal/domain"
 
 	"github.com/google/uuid"
 )
 
+type fakeHasher struct {
+	hash  string
+	err   error
+	calls int
+}
+
+func (f *fakeHasher) Hash(_ string) (string, error) {
+	f.calls++
+	if f.err != nil {
+		return "", f.err
+	}
+	return f.hash, nil
+}
+
 func TestNewUser(t *testing.T) {
 	id := uuid.New()
-	u, err := NewUser(ID(id), FullName("Rita Fontenele"), Document("52998224725"), Email("rita@example.com"), "hash", COMMON)
+	hasher := &fakeHasher{hash: "hash"}
+	u, err := NewUser(ID(id), hasher, "Rita Fontenele", "52998224725", "rita@example.com", "secret", COMMON)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -21,15 +39,87 @@ func TestNewUser(t *testing.T) {
 	if u.PasswordHash != "hash" || u.Type != COMMON {
 		t.Errorf("unexpected user: %+v", u)
 	}
-}
-
-func TestNewUser_EmptyPasswordHash(t *testing.T) {
-	if _, err := NewUser(ID(uuid.New()), FullName("Rita Fontenele"), Document("52998224725"), Email("rita@example.com"), "", COMMON); err == nil {
-		t.Error("expected error for empty password hash")
+	if hasher.calls != 1 {
+		t.Errorf("expected 1 hash call, got %d", hasher.calls)
 	}
 }
 
-func TestNewDocument(t *testing.T) {
+func TestNewUser_NormalizesFields(t *testing.T) {
+	u, err := NewUser(ID(uuid.New()), &fakeHasher{hash: "hash"}, "  Rita Fontenele ", "529.982.247-25", "  rita@example.com ", "secret", "common")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if u.FullName != "Rita Fontenele" {
+		t.Errorf("expected trimmed full name, got %q", u.FullName)
+	}
+	if u.Document != "52998224725" {
+		t.Errorf("expected normalized document, got %q", u.Document)
+	}
+	if u.Email != "rita@example.com" {
+		t.Errorf("expected trimmed email, got %q", u.Email)
+	}
+}
+
+func TestNewUser_InvalidFullName(t *testing.T) {
+	hasher := &fakeHasher{hash: "hash"}
+	_, err := NewUser(ID(uuid.New()), hasher, "   ", "52998224725", "rita@example.com", "secret", COMMON)
+	assertConstraintError(t, err, "full_name")
+	assertHasherNotCalled(t, hasher)
+}
+
+func TestNewUser_InvalidDocument(t *testing.T) {
+	hasher := &fakeHasher{hash: "hash"}
+	_, err := NewUser(ID(uuid.New()), hasher, "Rita Fontenele", "123", "rita@example.com", "secret", COMMON)
+	assertConstraintError(t, err, "document")
+	assertHasherNotCalled(t, hasher)
+}
+
+func TestNewUser_InvalidEmail(t *testing.T) {
+	hasher := &fakeHasher{hash: "hash"}
+	_, err := NewUser(ID(uuid.New()), hasher, "Rita Fontenele", "52998224725", "", "secret", COMMON)
+	assertConstraintError(t, err, "email")
+	assertHasherNotCalled(t, hasher)
+}
+
+func TestNewUser_InvalidPassword(t *testing.T) {
+	hasher := &fakeHasher{hash: "hash"}
+	_, err := NewUser(ID(uuid.New()), hasher, "Rita Fontenele", "52998224725", "rita@example.com", "  ", COMMON)
+	assertConstraintError(t, err, "password")
+	assertHasherNotCalled(t, hasher)
+}
+
+func TestNewUser_InvalidType(t *testing.T) {
+	hasher := &fakeHasher{hash: "hash"}
+	_, err := NewUser(ID(uuid.New()), hasher, "Rita Fontenele", "52998224725", "rita@example.com", "secret", "admin")
+	assertConstraintError(t, err, "type")
+	assertHasherNotCalled(t, hasher)
+}
+
+func TestNewUser_EmptyHash(t *testing.T) {
+	_, err := NewUser(ID(uuid.New()), &fakeHasher{}, "Rita Fontenele", "52998224725", "rita@example.com", "secret", COMMON)
+	assertConstraintError(t, err, "password")
+}
+
+func assertConstraintError(t *testing.T, err error, field string) {
+	t.Helper()
+	var invalid *domain.ConstraintValidationError
+	if !errors.As(err, &invalid) {
+		t.Fatalf("expected ConstraintValidationError, got %v", err)
+	}
+	if invalid.Field != field {
+		t.Errorf("expected field %q, got %q", field, invalid.Field)
+	}
+}
+
+func assertHasherNotCalled(t *testing.T, hasher *fakeHasher) {
+	t.Helper()
+	if hasher.calls != 0 {
+		t.Errorf("expected hasher not to be called, got %d calls", hasher.calls)
+	}
+}
+
+func TestValidateDocument(t *testing.T) {
+	u := User{}
 	valid := []string{
 		"52998224725",
 		"529.982.247-25",
@@ -37,12 +127,13 @@ func TestNewDocument(t *testing.T) {
 		"11.222.333/0001-81",
 	}
 	for _, doc := range valid {
-		d, err := NewDocument(doc)
+		u.Document = doc
+		digits, err := u.validateDocument()
 		if err != nil {
 			t.Errorf("expected %s to be valid, got %v", doc, err)
 		}
-		if string(d) != onlyDigits(doc) {
-			t.Errorf("expected normalized document %s, got %s", onlyDigits(doc), string(d))
+		if digits != onlyDigits(doc) {
+			t.Errorf("expected normalized document %s, got %s", onlyDigits(doc), digits)
 		}
 	}
 
@@ -55,62 +146,9 @@ func TestNewDocument(t *testing.T) {
 		"11111111111111",
 	}
 	for _, doc := range invalid {
-		if _, err := NewDocument(doc); err == nil {
+		u.Document = doc
+		if _, err := u.validateDocument(); err == nil {
 			t.Errorf("expected %s to be invalid", doc)
-		}
-	}
-}
-
-func TestNewFullName(t *testing.T) {
-	name, err := NewFullName("  Rita Fontenele ")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if name != "Rita Fontenele" {
-		t.Errorf("expected trimmed name, got %q", name)
-	}
-
-	for _, v := range []string{"", "   "} {
-		if _, err := NewFullName(v); err == nil {
-			t.Errorf("expected error for %q", v)
-		}
-	}
-}
-
-func TestNewEmail(t *testing.T) {
-	email, err := NewEmail("  rita@example.com ")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if email != "rita@example.com" {
-		t.Errorf("expected trimmed email, got %q", email)
-	}
-
-	if _, err := NewEmail(""); err == nil {
-		t.Error("expected error for empty email")
-	}
-}
-
-func TestNewPassword(t *testing.T) {
-	p, err := NewPassword("secret")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if p.String() != "secret" {
-		t.Errorf("expected secret, got %q", p.String())
-	}
-
-	withSpaces, err := NewPassword(" secret ")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if withSpaces.String() != " secret " {
-		t.Errorf("expected untrimmed password, got %q", withSpaces.String())
-	}
-
-	for _, v := range []string{"", "   "} {
-		if _, err := NewPassword(v); err == nil {
-			t.Errorf("expected error for %q", v)
 		}
 	}
 }
@@ -123,21 +161,5 @@ func TestUserCanTransfer(t *testing.T) {
 	shopkeeper := User{Type: SHOPKEEPER}
 	if shopkeeper.CanTransfer() {
 		t.Error("expected SHOPKEEPER user to not be able to transfer")
-	}
-}
-
-func TestParseType(t *testing.T) {
-	for _, valid := range []string{"common", "shopkeeper"} {
-		parsed, err := ParseType(valid)
-		if err != nil {
-			t.Errorf("expected %s to be valid, got %v", valid, err)
-		}
-		if string(parsed) != valid {
-			t.Errorf("expected %s, got %s", valid, parsed)
-		}
-	}
-
-	if _, err := ParseType("admin"); err == nil {
-		t.Error("expected error for invalid type")
 	}
 }

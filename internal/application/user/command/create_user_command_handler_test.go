@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"event-driven-architecture/internal/domain"
 	"event-driven-architecture/internal/domain/user"
 
 	"github.com/google/uuid"
@@ -103,9 +104,7 @@ func TestCreateUserCommandHandler_InvalidFullName(t *testing.T) {
 	h := NewCreateUserCommandHandler(newFakeUserRepository(), &fakePasswordHasher{})
 
 	_, err := h.Handle(context.Background(), cmd)
-	if !errors.Is(err, ErrInvalidFullName) {
-		t.Fatalf("expected ErrInvalidFullName, got %v", err)
-	}
+	assertConstraintError(t, err, "full_name")
 }
 
 func TestCreateUserCommandHandler_InvalidDocument(t *testing.T) {
@@ -114,9 +113,7 @@ func TestCreateUserCommandHandler_InvalidDocument(t *testing.T) {
 	h := NewCreateUserCommandHandler(newFakeUserRepository(), &fakePasswordHasher{})
 
 	_, err := h.Handle(context.Background(), cmd)
-	if !errors.Is(err, ErrInvalidDocument) {
-		t.Fatalf("expected ErrInvalidDocument, got %v", err)
-	}
+	assertConstraintError(t, err, "document")
 }
 
 func TestCreateUserCommandHandler_InvalidEmail(t *testing.T) {
@@ -125,9 +122,7 @@ func TestCreateUserCommandHandler_InvalidEmail(t *testing.T) {
 	h := NewCreateUserCommandHandler(newFakeUserRepository(), &fakePasswordHasher{})
 
 	_, err := h.Handle(context.Background(), cmd)
-	if !errors.Is(err, ErrInvalidEmail) {
-		t.Fatalf("expected ErrInvalidEmail, got %v", err)
-	}
+	assertConstraintError(t, err, "email")
 }
 
 func TestCreateUserCommandHandler_InvalidPassword(t *testing.T) {
@@ -137,9 +132,7 @@ func TestCreateUserCommandHandler_InvalidPassword(t *testing.T) {
 	h := NewCreateUserCommandHandler(newFakeUserRepository(), hasher)
 
 	_, err := h.Handle(context.Background(), cmd)
-	if !errors.Is(err, ErrInvalidPassword) {
-		t.Fatalf("expected ErrInvalidPassword, got %v", err)
-	}
+	assertConstraintError(t, err, "password")
 	if hasher.calls != 0 {
 		t.Errorf("expected hasher not to be called, got %d calls", hasher.calls)
 	}
@@ -151,9 +144,7 @@ func TestCreateUserCommandHandler_InvalidType(t *testing.T) {
 	h := NewCreateUserCommandHandler(newFakeUserRepository(), &fakePasswordHasher{})
 
 	_, err := h.Handle(context.Background(), cmd)
-	if !errors.Is(err, ErrInvalidType) {
-		t.Fatalf("expected ErrInvalidType, got %v", err)
-	}
+	assertConstraintError(t, err, "type")
 }
 
 func TestCreateUserCommandHandler_HashError(t *testing.T) {
@@ -186,3 +177,14 @@ var _ CreateUserUseCase = (*CreateUserCommandHandler)(nil)
 var _ user.UserRepository = (*fakeUserRepository)(nil)
 
 var _ user.PasswordHasher = (*fakePasswordHasher)(nil)
+
+func assertConstraintError(t *testing.T, err error, field string) {
+	t.Helper()
+	var invalid *domain.ConstraintValidationError
+	if !errors.As(err, &invalid) {
+		t.Fatalf("expected ConstraintValidationError, got %v", err)
+	}
+	if invalid.Field != field {
+		t.Errorf("expected field %q, got %q", field, invalid.Field)
+	}
+}

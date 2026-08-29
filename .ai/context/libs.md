@@ -11,6 +11,7 @@ Recorded: 2026-08-29 — Go 1.26.0, module `event-driven-architecture`
 | `github.com/pressly/goose/v3` | v3.27.3 | SQL migrations (embedded, applied on startup) | `internal/adapters/postgres` |
 | `github.com/DATA-DOG/go-sqlmock` | v1.5.2 | Postgres adapter tests (test-only) | `internal/adapters/postgres/*_test.go` |
 | `golang.org/x/crypto` | v0.55.0 | bcrypt password hashing (ADR-0005) | `internal/adapters/crypto` |
+| `github.com/paemuri/brdoc` | v1.1.2 | CPF/CNPJ validation (pure, public-domain) | `internal/domain/user` |
 
 ## Notable indirects
 - `go.mongodb.org/mongo-driver/v2` — present in go.sum as indirect; MongoDB read side (ADR-0002) is planned, NOT yet integrated.
@@ -18,5 +19,6 @@ Recorded: 2026-08-29 — Go 1.26.0, module `event-driven-architecture`
 
 ## Rules
 - No new dependency without explaining why (AGENTS.md). Prefer stdlib.
-- Domain layer must stay free of everything except `google/uuid`.
+- Domain layer must stay free of everything except `google/uuid` and pure
+  validation libraries (e.g. `paemuri/brdoc`) — no framework/persistence/HTTP.
 - Adding a library to implement a port is fine in `internal/adapters/` (e.g. gin, pgx, goose).

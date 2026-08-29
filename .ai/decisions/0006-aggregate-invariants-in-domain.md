@@ -2,6 +2,12 @@
 
 Status: accepted (2026-08-29)
 
+> Superseded in part by ADR-0007: per-field value objects for user fields were
+> replaced by plain string fields + a `validateFields` method, and the 3-layer
+> error chain was amended (field-constraint errors now flow domain → HTTP
+> directly via the shared `domain.ConstraintValidationError`). The factory/
+> thin-handler principles below remain.
+
 ## Context
 `CreateUserCommandHandler` and `CreateAccountCommandHandler` inlined business
 validation (empty full name, CPF/CNPJ, empty email/password, currency, balance)

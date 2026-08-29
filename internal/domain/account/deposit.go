@@ -1,7 +1,6 @@
 package account
 
 import (
-	"errors"
 	"event-driven-architecture/internal/domain"
 
 	"github.com/google/uuid"
@@ -21,9 +20,8 @@ type NewDeposit struct {
 }
 
 func (deposit NewDeposit) Create() (*Deposit, error) {
-
 	if !deposit.amount.IsPositive() {
-		return nil, errors.New("amount must be greater than zero")
+		return nil, &domain.ConstraintValidationError{Field: "amount"}
 	}
 
 	result, err := deposit.service.DepositFunds(

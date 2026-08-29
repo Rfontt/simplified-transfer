@@ -11,6 +11,7 @@ import (
 
 	"event-driven-architecture/internal/adapters/http/response"
 	usercommand "event-driven-architecture/internal/application/user/command"
+	"event-driven-architecture/internal/domain"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -96,7 +97,7 @@ func TestCreateUser_Conflict(t *testing.T) {
 }
 
 func TestCreateUser_InvalidDocument(t *testing.T) {
-	useCase := &stubCreateUser{err: usercommand.ErrInvalidDocument}
+	useCase := &stubCreateUser{err: &domain.ConstraintValidationError{Field: "document"}}
 	body := `{"full_name":"Rita Fontenele","document":"123","email":"rita@example.com","password":"secret","type":"common"}`
 	rec := performUserRequest(t, useCase, body)
 	if rec.Code != http.StatusBadRequest {

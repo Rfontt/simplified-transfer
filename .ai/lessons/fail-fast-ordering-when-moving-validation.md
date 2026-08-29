@@ -7,10 +7,9 @@ Root cause: `NewUser` was moved to validate raw strings AFTER the handler
 already called the expensive `hasher.Hash`; nothing enforced "all cheap checks
 before expensive work" because the validation code simply relocated.
 
-Solution: the handler now builds and validates every value object
-(`NewFullName`, `NewDocument`, `NewEmail`, `ParseType`, `NewPassword`) before
-hashing; `NewUser` takes the validated VOs and only assembles + guards hash
-presence. Invalid input never reaches the hasher.
+Solution: `NewUser` validates every field via the private `validateFields`
+method (`newFullName`, `newDocument`, `newEmail`, `newPassword`, `parseType`)
+BEFORE calling `hasher.Hash`. Invalid input never reaches the hasher.
 
 How to avoid it again: when moving rules into the domain, re-check the
 ordering of side-effectful/expensive operations at the call boundary — the

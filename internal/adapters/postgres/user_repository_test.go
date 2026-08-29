@@ -17,9 +17,9 @@ func testUser(t *testing.T) (*user.User, uuid.UUID) {
 	id := uuid.New()
 	u := &user.User{
 		ID:           user.ID(id),
-		FullName:     user.FullName("Rita Fontenele"),
-		Document:     user.Document("52998224725"),
-		Email:        user.Email("rita@example.com"),
+		FullName:     "Rita Fontenele",
+		Document:     "52998224725",
+		Email:        "rita@example.com",
 		PasswordHash: "$2a$10$hashed",
 		Type:         user.COMMON,
 	}

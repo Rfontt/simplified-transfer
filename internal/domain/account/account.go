@@ -27,20 +27,29 @@ type Account struct {
 }
 
 func NewAccount(id AccountID, ownerID user.ID, balance domain.MonetaryAmount) (*Account, error) {
-	currency := strings.TrimSpace(balance.Currency)
-	if currency == "" {
-		return nil, &InvalidCurrencyError{}
-	}
-	if balance.Value < 0 {
-		return nil, &InvalidBalanceError{}
-	}
-	return &Account{
+	a := &Account{
 		ID:        id,
 		OwnerId:   ownerID,
-		Balance:   domain.MonetaryAmount{Currency: currency, Value: balance.Value},
+		Balance:   balance,
 		Status:    ACTIVE,
 		CreatedAt: time.Now(),
-	}, nil
+	}
+	if err := a.validateFields(); err != nil {
+		return nil, err
+	}
+	return a, nil
+}
+
+func (a *Account) validateFields() error {
+	currency := strings.TrimSpace(a.Balance.Currency)
+	if currency == "" {
+		return &domain.ConstraintValidationError{Field: "currency"}
+	}
+	if a.Balance.Value < 0 {
+		return &domain.ConstraintValidationError{Field: "balance"}
+	}
+	a.Balance = domain.MonetaryAmount{Currency: currency, Value: a.Balance.Value}
+	return nil
 }
 
 func (a Account) CanTransact() bool {

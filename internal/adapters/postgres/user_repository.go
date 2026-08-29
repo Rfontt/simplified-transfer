@@ -89,11 +89,11 @@ func scanUser(s rowScanner) (*user.User, error) {
 	}
 	return &user.User{
 		ID:           user.ID(id),
-		FullName:     user.FullName(fullName),
-		Document:     user.Document(document),
-		Email:        user.Email(email),
+		FullName:     fullName,
+		Document:     document,
+		Email:        email,
 		PasswordHash: password,
-		Type:         user.Type(typ),
+		Type:         typ,
 	}, nil
 }
 
@@ -107,10 +107,10 @@ func translateUserError(err error, u *user.User) error {
 	}
 	switch pgErr.ConstraintName {
 	case "users_document_key":
-		return &user.AlreadyExistsError{Document: u.Document.String()}
+		return &user.AlreadyExistsError{Document: u.Document}
 	case "users_email_key":
-		return &user.AlreadyExistsError{Email: u.Email.String()}
+		return &user.AlreadyExistsError{Email: u.Email}
 	default:
-		return &user.AlreadyExistsError{Email: u.Email.String(), Document: u.Document.String()}
+		return &user.AlreadyExistsError{Email: u.Email, Document: u.Document}
 	}
 }
