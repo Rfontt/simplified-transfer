@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"event-driven-architecture/internal/domain"
 	"event-driven-architecture/internal/domain/account"
 
 	"github.com/google/uuid"
@@ -85,9 +86,7 @@ func TestCreateAccountCommandHandler_InvalidCurrency(t *testing.T) {
 		Currency: "",
 		Balance:  0,
 	})
-	if !errors.Is(err, ErrInvalidCurrency) {
-		t.Fatalf("expected ErrInvalidCurrency, got %v", err)
-	}
+	assertConstraintError(t, err, "currency")
 }
 
 func TestCreateAccountCommandHandler_InvalidBalance(t *testing.T) {
@@ -97,9 +96,7 @@ func TestCreateAccountCommandHandler_InvalidBalance(t *testing.T) {
 		Currency: "BRL",
 		Balance:  -1,
 	})
-	if !errors.Is(err, ErrInvalidBalance) {
-		t.Fatalf("expected ErrInvalidBalance, got %v", err)
-	}
+	assertConstraintError(t, err, "balance")
 }
 
 func TestCreateAccountCommandHandler_AlreadyExists(t *testing.T) {
@@ -135,3 +132,14 @@ func TestCreateAccountCommandHandler_OwnerNotFound(t *testing.T) {
 var _ CreateAccountUseCase = (*CreateAccountCommandHandler)(nil)
 
 var _ account.AccountRepository = (*fakeAccountRepository)(nil)
+
+func assertConstraintError(t *testing.T, err error, field string) {
+	t.Helper()
+	var invalid *domain.ConstraintValidationError
+	if !errors.As(err, &invalid) {
+		t.Fatalf("expected ConstraintValidationError, got %v", err)
+	}
+	if invalid.Field != field {
+		t.Errorf("expected field %q, got %q", field, invalid.Field)
+	}
+}

@@ -1,10 +1,12 @@
-package http
+package handler
 
 import (
 	"errors"
 	"net/http"
 
 	"event-driven-architecture/internal/application/account/command"
+	usercommand "event-driven-architecture/internal/application/user/command"
+	"event-driven-architecture/internal/domain"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,14 +17,17 @@ func writeError(ctx *gin.Context, err error) {
 }
 
 func mapError(err error) (int, string) {
+	var constraintErr *domain.ConstraintValidationError
+	if errors.As(err, &constraintErr) {
+		return http.StatusBadRequest, err.Error()
+	}
 	switch {
-	case errors.Is(err, command.ErrAccountAlreadyExists):
+	case errors.Is(err, command.ErrAccountAlreadyExists),
+		errors.Is(err, usercommand.ErrUserAlreadyExists):
 		return http.StatusConflict, err.Error()
 	case errors.Is(err, command.ErrOwnerNotFound):
 		return http.StatusNotFound, err.Error()
-	case errors.Is(err, command.ErrInvalidOwnerID),
-		errors.Is(err, command.ErrInvalidCurrency),
-		errors.Is(err, command.ErrInvalidBalance):
+	case errors.Is(err, command.ErrInvalidOwnerID):
 		return http.StatusBadRequest, err.Error()
 	default:
 		return http.StatusInternalServerError, "internal server error"

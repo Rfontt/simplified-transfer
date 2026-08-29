@@ -1,6 +1,6 @@
 # Development (CONTEXT)
 
-Recorded: 2026-08-26
+Recorded: 2026-08-26 · Updated: 2026-08-29
 
 ## Commands
 - `go test ./...` — all tests
@@ -15,12 +15,15 @@ Recorded: 2026-08-26
 - Env: `DATABASE_URL` (defaults to `postgres://postgres:postgres@localhost:5432/simplified_transfer?sslmode=disable`) and `HTTP_PORT` (default `8080`); see `.env.example`.
 - `go run ./cmd/simplified-transfer/` — applies goose migrations on startup, serves on `:8080`.
 - Create an account: `POST /accounts` `{ "owner_id": "<uuid>", "currency": "BRL", "balance": 0 }`.
+- Create a user: `POST /users` `{ "full_name": "Rita", "document": "529.982.247-25", "email": "rita@example.com", "password": "secret", "type": "common" }`.
 
 ## Stack
 - HTTP: Gin. Postgres: pgx (stdlib driver) + goose migrations. Tests: sqlmock (adapter error mapping).
+- Library list and versions: `.ai/context/libs.md`. Code style: `.ai/context/style.md`. Tests style: `.ai/context/testing.md`.
 
 ## Code conventions
-- HTTP adapters follow SRP: controllers are thin (bind → call use case → write), request DTOs in `request/`, response DTOs in `response/`, and error→HTTP-status mapping in a dedicated `error_handler.go`.- Pure domain, no external dependencies (except `google/uuid`).
+- HTTP adapters follow SRP: thin handlers in `handler/` (bind → call use case → write), request DTOs in `request/`, response DTOs in `response/`, and error→HTTP-status mapping in a dedicated `handler/error_handler.go`.
+- Pure domain, no external dependencies (except `google/uuid`).
 - Events named in past tense: `UserCreated`, `MoneyDeposited`.
 - Repositories = interfaces in the domain; implementation in adapters.
 - Commands fail fast; handlers do not emit partial state.
@@ -35,9 +38,10 @@ Recorded: 2026-08-26
 
 ## State / known gaps
 - Event sourcing defined, but no persistence/replay.
-- Command handlers mostly stubs.
-- No HTTP API, no databases, no adapters (authorization/notification).
-- Tests: convention is unit in the domain + in-memory/mock repos, but there are currently NO `*_test.go` files (`go test ./...` reports "no test files" in every package).
+- Transfer/deposit command handlers are empty stubs (`internal/application/user/command`).
+- No authorization/notification adapters; no MongoDB read side.
+- `POST /accounts` and `POST /users` vertical slices are wired end-to-end and tested (`go test ./...` passes, 2026-08-29).
+- Root `main.go` is stale GoLand boilerplate — the real entry point is `cmd/simplified-transfer/main.go`.
 
 ## Business rules (summary)
 - Only COMMON initiates transfers; SHOPKEEPER only receives.
@@ -45,3 +49,10 @@ Recorded: 2026-08-26
 - Authorization/notification failure → refund + FAILED status.
 - CPF/CNPJ and email unique.
 - Endpoint: `POST /transfer { value, payer, payee }`.
+
+## Code review agent
+- Trigger: `/review` — fully automated: reviews the worktree changes (`git diff HEAD` + untracked), writes findings to `.git/review-notes.json`, and opens a Hunk window with the comments already rendered. No manual step.
+- Review window: **herdr** when pi runs inside herdr (`HERDR_ENV=1`) — splits a sibling pane and runs `hunk diff --agent-context .git/review-notes.json --agent-notes`; **osascript + Terminal** fallback outside herdr; chat-only if hunk is missing.
+- The review applies the project ruleset `.ai/context/code-review.md` (DDD + style + process rules, each with an ID) on top of the generic `code-review` skill.
+- To add a rule: append a numbered entry in `.ai/context/code-review.md` under the right category — nothing else to change.
+- Hunk review skill: `hunk skill path` (bundled with `hunkdiff`, npm global). Herdr skill: `~/.pi/agent/skills/herdr/SKILL.md` (`herdr --skill`).

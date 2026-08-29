@@ -24,28 +24,28 @@ Each context has its own aggregate root and repository interfaces. Events from o
 internal/
 ├── domain/                              # Core business logic
 │   ├── user/                           # User aggregate root
-│   │   ├── User.go                     # Aggregate entity
-│   │   ├── UserRepository.go           # Repository interface
-│   │   ├── UserDomainEvent.go          # Domain events
-│   │   └── UserExceptions.go           # Business rule violations
+│   │   ├── user.go                     # Aggregate entity
+│   │   ├── user_repository.go          # Repository interface
+│   │   ├── user_domain_event.go        # Domain events
+│   │   └── user_exceptions.go          # Business rule violations
 │   ├── account/                        # Account aggregate root
-│   │   ├── Account.go                  # Aggregate entity
-│   │   ├── Deposit.go, Transfer.go     # Value entities within aggregate
-│   │   ├── *Repository.go              # Repository interfaces
-│   │   ├── *DomainEvent.go             # Domain events
-│   │   ├── *Service.go                 # Domain services
-│   │   └── AccountQueries.go           # Read-side queries (stubs)
-│   ├── AggregateEvent.go               # Generic event interface
-│   ├── AggregateID.go                  # ID abstraction
-│   └── MonetaryAmount.go               # Value object for amounts
+│   │   ├── account.go                  # Aggregate entity
+│   │   ├── deposit.go, transfer.go     # Value entities within aggregate
+│   │   ├── *_repository.go             # Repository interfaces
+│   │   ├── *_domain_event.go           # Domain events
+│   │   ├── *_service.go                # Domain services
+│   │   └── account_queries.go          # Read-side queries (stubs)
+│   ├── aggregate_event.go              # Generic event interface
+│   ├── aggregate_id.go                 # ID abstraction
+│   └── monetary_amount.go              # Value object for amounts
 ├── application/                         # Use cases (CQRS)
 │   └── user/
 │       ├── command/                    # Write operations
-│       │   ├── UserDepositMoneyCommand*
-│       │   └── UserTransferMoneyCommand*
+│       │   ├── user_deposit_money_command.go
+│       │   └── user_transfer_money_command.go
 │       └── query/                      # Read operations
-│           ├── UserBalanceQuery*
-│           └── UserBalanceQueryProjection.go
+│           ├── user_balance_query.go
+│           └── user_balance_query_projection.go
 └── adapters/                            # External integrations (stub)
 ```
 
@@ -108,44 +108,44 @@ The application is currently in early stages. Main entry point is `cmd/simplifie
 ### Domain Layer (`internal/domain/`)
 The domain layer contains pure business logic with no external dependencies.
 
-**Aggregate Files** (e.g., `User.go`, `Account.go`, `Transfer.go`):
+**Aggregate Files** (e.g., `user.go`, `account.go`, `transfer.go`):
 - Define the entity/aggregate, its identity, and valid state transitions
 - Methods represent business operations on the aggregate
 - Must not directly access repositories; changes are signaled via events
 
-**Event Files** (e.g., `UserDomainEvent.go`, `AccountDomainEvent.go`):
+**Event Files** (e.g., `user_domain_event.go`, `account_domain_event.go`):
 - Immutable event types implementing `AggregateEvent[T]`
 - Each event represents a fact that occurred (past tense: "UserCreated", "MoneyDeposited")
 - Include all data needed to reconstruct aggregate state
 - Never throw events away; they are the audit trail
 
-**Repository Interfaces** (e.g., `UserRepository.go`):
+**Repository Interfaces** (e.g., `user_repository.go`):
 - Define abstract contract for persistence (no implementation)
 - Methods: `GetOne(id)` for reads, `Save(entity)` for writes
 - Implementations are external adapters (stub for now)
 
-**Service Files** (e.g., `DepositService.go`):
+**Service Files** (e.g., `deposit_service.go`):
 - Encapsulate business rules that span multiple aggregates
 - Validate pre-conditions before state changes
 - Called from command handlers, not from entities
 
-**Exceptions/Errors** (e.g., `UserExceptions.go`):
+**Exceptions/Errors** (e.g., `user_exceptions.go`):
 - Domain-specific error types representing business rule violations
 - Used in validation; command handlers should check and reject invalid commands
 
-**Value Objects** (e.g., `MonetaryAmount.go`):
+**Value Objects** (e.g., `monetary_amount.go`):
 - Immutable, domain-specific types with meaningful equality
 - Have no identity; equality is based on their values
 
 ### Application Layer (`internal/application/`)
 Orchestrates domain logic; implements use cases via CQRS.
 
-**Commands** (e.g., `UserDepositMoneyCommand.go`):
+**Commands** (e.g., `user_deposit_money_command.go`):
 - Immutable request objects representing user intent
 - Contain only the data needed to perform the operation
 - No business logic; just data transfer objects
 
-**Command Handlers** (e.g., `UserDepositMoneyCommandHandler.go`):
+**Command Handlers** (e.g., `user_deposit_money_command_handler.go`):
 - Load aggregate from repository
 - Validate command against domain service rules
 - Call aggregate methods to trigger state changes
@@ -153,11 +153,11 @@ Orchestrates domain logic; implements use cases via CQRS.
 - Save aggregate back to repository
 - Note: Currently stubbed; will integrate with event store
 
-**Queries** (e.g., `UserBalanceQuery.go`):
+**Queries** (e.g., `user_balance_query.go`):
 - Read-only requests for data
 - No side effects; executed against read models (eventually consistent)
 
-**Projections** (e.g., `UserBalanceQueryProjection.go`):
+**Projections** (e.g., `user_balance_query_projection.go`):
 - Build and maintain read-optimized views from domain events
 - Subscribed to event streams; update on each event
 - Currently stubbed; will integrate with MongoDB later

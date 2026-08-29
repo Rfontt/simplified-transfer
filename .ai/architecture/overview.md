@@ -1,14 +1,14 @@
 # Architecture Overview (FACTS)
 
-Recorded: 2026-08-26
+Recorded: 2026-08-26 · Updated: 2026-08-29
 
 ## What it is
 A simplified transfer system in Go, demonstrating DDD + CQRS + Event Sourcing. Designed via Event Storming (diagrams in `system_design/`).
 
 ## Stack
 - Go 1.26.0 (module `event-driven-architecture`).
-- Only external dependency: `github.com/google/uuid v1.6.0`.
-- Planned databases (NOT yet integrated): PostgreSQL (commands/writes), MongoDB (queries/reads).
+- Dependencies: `gin` (HTTP), `google/uuid` (IDs), `jackc/pgx/v5` (Postgres), `pressly/goose/v3` (migrations), `DATA-DOG/go-sqlmock` (tests). See `.ai/context/libs.md`.
+- Databases: PostgreSQL wired (commands/writes). MongoDB (queries/reads) planned, NOT yet integrated (driver present in go.sum as indirect).
 
 ## Bounded Contexts
 - **User** (`internal/domain/user`) — identity, type COMMON/SHOPKEEPER, authentication. Aggregate root: `User`.
@@ -24,11 +24,10 @@ A simplified transfer system in Go, demonstrating DDD + CQRS + Event Sourcing. D
 ## Structure
 `internal/domain` (pure logic) → `internal/application` (CQRS use cases: `command/` and `query/`) → `internal/adapters` (http, postgres).
 
-## Current status (2026-08-26)
-- Account creation is the first wired vertical slice: `POST /accounts` (Gin) →
-  `CreateAccountCommandHandler` → Postgres `AccountRepository`.
-- `internal/adapters/` now contains: `http/` (Gin router + controller) and
-  `postgres/` (repository, connection, goose migrations).
+## Current status (2026-08-29)
+- Account creation and user creation are wired vertical slices: `POST /accounts` and `POST /users` (Gin) → command handlers → Postgres repositories (goose migrations on startup). Passwords hashed via `user.PasswordHasher` port (bcrypt adapter).
+- Layer details live in `.ai/architecture/`: `domain.md`, `application.md`, `adapters.md`, `config.md`.
+- HTTP contract source of truth: `docs/openapi.yaml` (see `.ai/context/http-api.md`).
 - NOT yet implemented: transfer/deposit endpoints, MongoDB queries, event
   store persistence/replay, projections connected to the stream, authorization
   and notification adapters.

@@ -4,9 +4,11 @@ import (
 	"context"
 	"log"
 
+	"event-driven-architecture/internal/adapters/crypto"
 	apphttp "event-driven-architecture/internal/adapters/http"
 	"event-driven-architecture/internal/adapters/postgres"
 	"event-driven-architecture/internal/application/account/command"
+	usercommand "event-driven-architecture/internal/application/user/command"
 	"event-driven-architecture/internal/config"
 )
 
@@ -25,7 +27,12 @@ func main() {
 
 	accountRepo := postgres.NewAccountRepository(db)
 	createAccount := command.NewCreateAccountCommandHandler(accountRepo)
-	router := apphttp.NewRouter(createAccount)
+
+	userRepo := postgres.NewUserRepository(db)
+	hasher := crypto.NewBcryptHasher()
+	createUser := usercommand.NewCreateUserCommandHandler(userRepo, hasher)
+
+	router := apphttp.NewRouter(createAccount, createUser)
 
 	log.Printf("simplified-transfer listening on :%s", cfg.HTTPPort)
 	if err := router.Run(":" + cfg.HTTPPort); err != nil {

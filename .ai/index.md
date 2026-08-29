@@ -17,5 +17,8 @@ Structured project memory (markdown in git = source of truth). Read the relevant
 
 ## Default startup reads
 1. `architecture/overview.md` — how the system works today.
-2. `context/development.md` — commands and conventions.
-3. `decisions/` — decisions that constrain the solution.
+2. `architecture/domain.md`, `architecture/application.md`, `architecture/adapters.md`, `architecture/config.md` — layer-by-layer facts.
+3. `context/development.md` — commands and conventions.
+4. `context/http-api.md` — HTTP endpoints (source of truth: `docs/openapi.yaml`).
+5. `context/style.md`, `context/testing.md`, `context/libs.md` — style, tests, libraries.
+6. `decisions/` — decisions that constrain the solution.
