@@ -16,12 +16,12 @@ func testUser(t *testing.T) (*user.User, uuid.UUID) {
 	t.Helper()
 	id := uuid.New()
 	u := &user.User{
-		ID:       user.ID(id),
-		FullName: "Rita Fontenele",
-		Document: "52998224725",
-		Email:    "rita@example.com",
-		Password: "$2a$10$hashed",
-		Type:     user.COMMON,
+		ID:           user.ID(id),
+		FullName:     user.FullName("Rita Fontenele"),
+		Document:     user.Document("52998224725"),
+		Email:        user.Email("rita@example.com"),
+		PasswordHash: "$2a$10$hashed",
+		Type:         user.COMMON,
 	}
 	return u, id
 }
@@ -101,7 +101,7 @@ func TestUserRepository_ByID(t *testing.T) {
 	if u.FullName != "Rita Fontenele" || u.Email != "rita@example.com" {
 		t.Errorf("unexpected user: %+v", u)
 	}
-	if u.Type != user.COMMON || u.Password != "$2a$10$hashed" {
+	if u.Type != user.COMMON || u.PasswordHash != "$2a$10$hashed" {
 		t.Errorf("unexpected user: %+v", u)
 	}
 }

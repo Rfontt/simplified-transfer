@@ -9,7 +9,7 @@ Recorded: 2026-08-29
 - `CreateAccountCommand` — immutable data `{OwnerID string, Currency string, Balance float64}`.
 - `CreateAccountCommandHandler` — constructor takes the `account.AccountRepository` port; implements the `CreateAccountUseCase` interface (`Handle(ctx, cmd) (*CreateAccountResult, error)`), which is the port consumed by the HTTP adapter (DIP).
 - `CreateAccountResult` `{ID, OwnerID, Currency, Balance string/float64}` — application-level DTO.
-- Fail-fast validation BEFORE persisting: ownerID parses as UUID → `ErrInvalidOwnerID`; currency non-empty → `ErrInvalidCurrency`; balance >= 0 → `ErrInvalidBalance`.
+- Boundary handling: ownerID parses as UUID → `ErrInvalidOwnerID`. Currency/balance rules live in `account.NewAccount` (ADR-0006); handler maps `InvalidCurrencyError`/`InvalidBalanceError` → `ErrInvalidCurrency`/`ErrInvalidBalance`.
 - Sentinel errors in `errors.go`: `ErrAccountAlreadyExists`, `ErrOwnerNotFound`, `ErrInvalidOwnerID`, `ErrInvalidCurrency`, `ErrInvalidBalance` (plain `errors.New`, compared with `errors.Is`).
 
 ## Error-mapping chain (three layers)
@@ -23,7 +23,7 @@ This keeps the HTTP adapter free of domain imports and lets the handler own busi
 - `CreateUserCommand` — immutable data `{FullName, Document, Email, Password, Type string}`.
 - `CreateUserCommandHandler` — constructor takes the `user.UserRepository` and `user.PasswordHasher` ports; implements the `CreateUserUseCase` interface (`Handle(ctx, cmd) (*CreateUserResult, error)`), the port consumed by the HTTP adapter.
 - `CreateUserResult` `{ID, FullName, Document, Email, Type}` — application-level DTO; password hash never leaves the handler.
-- Fail-fast validation BEFORE hashing/persisting: full name non-empty → `ErrInvalidFullName`; document valid CPF/CNPJ → `ErrInvalidDocument`; email non-empty → `ErrInvalidEmail`; password non-empty → `ErrInvalidPassword`; type parsed → `ErrInvalidType`. Password hashed via the `PasswordHasher` port, then `users.Add`.
+- Boundary handling (fail-fast): handler builds/validates ALL value objects (`NewFullName`, `NewDocument`, `NewEmail`, `ParseType`, `NewPassword`) BEFORE hashing, then `hasher.Hash`, then `NewUser` assembles. Invalid input never pays a bcrypt hash. Handler maps domain errors → sentinels (ADR-0006).
 - Sentinel errors in `errors.go`: `ErrUserAlreadyExists`, `ErrInvalidFullName`, `ErrInvalidDocument`, `ErrInvalidEmail`, `ErrInvalidPassword`, `ErrInvalidType`.
 - `UserDepositMoneyCommand`, `UserTransferMoneyCommand` still exist; their handler files remain empty stubs. Not wired.
 

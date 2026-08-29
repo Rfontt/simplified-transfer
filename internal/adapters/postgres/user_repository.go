@@ -36,7 +36,7 @@ func (r *UserRepository) Add(ctx context.Context, u *user.User) error {
 		u.FullName,
 		u.Document,
 		u.Email,
-		u.Password,
+		u.PasswordHash,
 		string(u.Type),
 	)
 	if err != nil {
@@ -77,16 +77,24 @@ func (r *UserRepository) AllUsers(ctx context.Context) ([]*user.User, error) {
 
 func scanUser(s rowScanner) (*user.User, error) {
 	var (
-		u   user.User
-		id  uuid.UUID
-		typ string
+		id       uuid.UUID
+		fullName string
+		document string
+		email    string
+		password string
+		typ      string
 	)
-	if err := s.Scan(&id, &u.FullName, &u.Document, &u.Email, &u.Password, &typ); err != nil {
+	if err := s.Scan(&id, &fullName, &document, &email, &password, &typ); err != nil {
 		return nil, err
 	}
-	u.ID = user.ID(id)
-	u.Type = user.Type(typ)
-	return &u, nil
+	return &user.User{
+		ID:           user.ID(id),
+		FullName:     user.FullName(fullName),
+		Document:     user.Document(document),
+		Email:        user.Email(email),
+		PasswordHash: password,
+		Type:         user.Type(typ),
+	}, nil
 }
 
 func translateUserError(err error, u *user.User) error {
@@ -99,10 +107,10 @@ func translateUserError(err error, u *user.User) error {
 	}
 	switch pgErr.ConstraintName {
 	case "users_document_key":
-		return &user.AlreadyExistsError{Document: u.Document}
+		return &user.AlreadyExistsError{Document: u.Document.String()}
 	case "users_email_key":
-		return &user.AlreadyExistsError{Email: u.Email}
+		return &user.AlreadyExistsError{Email: u.Email.String()}
 	default:
-		return &user.AlreadyExistsError{Email: u.Email, Document: u.Document}
+		return &user.AlreadyExistsError{Email: u.Email.String(), Document: u.Document.String()}
 	}
 }

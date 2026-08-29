@@ -12,23 +12,26 @@ const (
 type ID domain.AggregateID
 
 type User struct {
-	ID       ID
-	FullName string
-	Document string
-	Email    string
-	Password string
-	Type     Type
+	ID           ID
+	FullName     FullName
+	Document     Document
+	Email        Email
+	PasswordHash string
+	Type         Type
 }
 
-func NewUser(id ID, fullName, document, email, password string, userType Type) *User {
-	return &User{
-		ID:       id,
-		FullName: fullName,
-		Document: document,
-		Email:    email,
-		Password: password,
-		Type:     userType,
+func NewUser(id ID, fullName FullName, document Document, email Email, passwordHash string, userType Type) (*User, error) {
+	if passwordHash == "" {
+		return nil, &InvalidPasswordError{}
 	}
+	return &User{
+		ID:           id,
+		FullName:     fullName,
+		Document:     document,
+		Email:        email,
+		PasswordHash: passwordHash,
+		Type:         userType,
+	}, nil
 }
 
 func ParseType(value string) (Type, error) {

@@ -37,20 +37,15 @@ func (h *CreateAccountCommandHandler) Handle(ctx context.Context, cmd CreateAcco
 		return nil, fmt.Errorf("%w: %v", ErrInvalidOwnerID, err)
 	}
 
-	if cmd.Currency == "" {
-		return nil, ErrInvalidCurrency
-	}
-
-	if cmd.Balance < 0 {
-		return nil, ErrInvalidBalance
-	}
-
 	id := uuid.New()
-	acc := account.NewAccount(
+	acc, err := account.NewAccount(
 		account.AccountID(id),
 		user.ID(ownerID),
 		domain.MonetaryAmount{Currency: cmd.Currency, Value: cmd.Balance},
 	)
+	if err != nil {
+		return nil, mapAccountCreationValidationError(err)
+	}
 
 	if err := h.accounts.Add(ctx, acc); err != nil {
 		var alreadyExists *account.AccountAlreadyExistsError
@@ -68,7 +63,20 @@ func (h *CreateAccountCommandHandler) Handle(ctx context.Context, cmd CreateAcco
 	return &CreateAccountResult{
 		ID:       id.String(),
 		OwnerID:  ownerID.String(),
-		Currency: cmd.Currency,
+		Currency: acc.Balance.Currency,
 		Balance:  cmd.Balance,
 	}, nil
+}
+
+func mapAccountCreationValidationError(err error) error {
+	var invalidCurrency *account.InvalidCurrencyError
+	var invalidBalance *account.InvalidBalanceError
+	switch {
+	case errors.As(err, &invalidCurrency):
+		return fmt.Errorf("%w: %v", ErrInvalidCurrency, err)
+	case errors.As(err, &invalidBalance):
+		return fmt.Errorf("%w: %v", ErrInvalidBalance, err)
+	default:
+		return err
+	}
 }

@@ -1,31 +1,26 @@
 package user
 
-import (
-	"fmt"
-	"strings"
-)
+import "strings"
 
-type InvalidDocumentError struct {
-	Document string
-}
+type Document string
 
-func (e *InvalidDocumentError) Error() string {
-	return fmt.Sprintf("document %s is not a valid CPF or CNPJ", e.Document)
-}
-
-func ValidateDocument(document string) error {
-	digits := onlyDigits(document)
+func NewDocument(value string) (Document, error) {
+	digits := onlyDigits(value)
 	switch len(digits) {
 	case 11:
 		if validCPF(digits) {
-			return nil
+			return Document(digits), nil
 		}
 	case 14:
 		if validCNPJ(digits) {
-			return nil
+			return Document(digits), nil
 		}
 	}
-	return &InvalidDocumentError{Document: document}
+	return "", &InvalidDocumentError{Document: value}
+}
+
+func (d Document) String() string {
+	return string(d)
 }
 
 var (

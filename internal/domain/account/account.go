@@ -1,6 +1,8 @@
 package account
 
 import (
+	"strings"
+
 	"event-driven-architecture/internal/domain"
 	"event-driven-architecture/internal/domain/user"
 	"time"
@@ -24,14 +26,21 @@ type Account struct {
 	CreatedAt time.Time
 }
 
-func NewAccount(id AccountID, ownerID user.ID, balance domain.MonetaryAmount) *Account {
+func NewAccount(id AccountID, ownerID user.ID, balance domain.MonetaryAmount) (*Account, error) {
+	currency := strings.TrimSpace(balance.Currency)
+	if currency == "" {
+		return nil, &InvalidCurrencyError{}
+	}
+	if balance.Value < 0 {
+		return nil, &InvalidBalanceError{}
+	}
 	return &Account{
 		ID:        id,
 		OwnerId:   ownerID,
-		Balance:   balance,
+		Balance:   domain.MonetaryAmount{Currency: currency, Value: balance.Value},
 		Status:    ACTIVE,
 		CreatedAt: time.Now(),
-	}
+	}, nil
 }
 
 func (a Account) CanTransact() bool {

@@ -14,7 +14,10 @@ func TestNewAccount(t *testing.T) {
 	ownerID := user.ID(uuid.New())
 	balance := domain.MonetaryAmount{Currency: "BRL", Value: 100}
 
-	acc := NewAccount(id, ownerID, balance)
+	acc, err := NewAccount(id, ownerID, balance)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if acc.ID != id {
 		t.Errorf("expected ID %v, got %v", id, acc.ID)
@@ -30,5 +33,30 @@ func TestNewAccount(t *testing.T) {
 	}
 	if acc.CreatedAt.IsZero() {
 		t.Error("expected CreatedAt to be set")
+	}
+}
+
+func TestNewAccount_InvalidBalance(t *testing.T) {
+	id := AccountID(uuid.New())
+	ownerID := user.ID(uuid.New())
+
+	for _, currency := range []string{"", "  "} {
+		if _, err := NewAccount(id, ownerID, domain.MonetaryAmount{Currency: currency, Value: 100}); err == nil {
+			t.Errorf("expected error for currency %q", currency)
+		}
+	}
+
+	if _, err := NewAccount(id, ownerID, domain.MonetaryAmount{Currency: "BRL", Value: -1}); err == nil {
+		t.Error("expected error for negative balance")
+	}
+}
+
+func TestNewAccount_TrimsCurrency(t *testing.T) {
+	acc, err := NewAccount(AccountID(uuid.New()), user.ID(uuid.New()), domain.MonetaryAmount{Currency: " BRL ", Value: 100})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if acc.Balance.Currency != "BRL" {
+		t.Errorf("expected trimmed currency, got %q", acc.Balance.Currency)
 	}
 }

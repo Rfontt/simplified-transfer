@@ -17,3 +17,15 @@ type OwnerNotFoundError struct {
 func (e *OwnerNotFoundError) Error() string {
 	return fmt.Sprintf("owner %s not found", e.OwnerID)
 }
+
+type InvalidCurrencyError struct{}
+
+func (e *InvalidCurrencyError) Error() string {
+	return "currency must not be empty"
+}
+
+type InvalidBalanceError struct{}
+
+func (e *InvalidBalanceError) Error() string {
+	return "balance must not be negative"
+}

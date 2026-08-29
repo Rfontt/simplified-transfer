@@ -86,8 +86,8 @@ func TestCreateUserCommandHandler_Success(t *testing.T) {
 	for _, u := range repo.users {
 		saved = u
 	}
-	if saved.Password != "$2a$10$hashed" {
-		t.Errorf("expected hashed password stored, got %q", saved.Password)
+	if saved.PasswordHash != "$2a$10$hashed" {
+		t.Errorf("expected hashed password stored, got %q", saved.PasswordHash)
 	}
 	if saved.Type != user.COMMON {
 		t.Errorf("expected COMMON type, got %v", saved.Type)
@@ -133,11 +133,15 @@ func TestCreateUserCommandHandler_InvalidEmail(t *testing.T) {
 func TestCreateUserCommandHandler_InvalidPassword(t *testing.T) {
 	cmd := validCreateUserCommand()
 	cmd.Password = ""
-	h := NewCreateUserCommandHandler(newFakeUserRepository(), &fakePasswordHasher{})
+	hasher := &fakePasswordHasher{}
+	h := NewCreateUserCommandHandler(newFakeUserRepository(), hasher)
 
 	_, err := h.Handle(context.Background(), cmd)
 	if !errors.Is(err, ErrInvalidPassword) {
 		t.Fatalf("expected ErrInvalidPassword, got %v", err)
+	}
+	if hasher.calls != 0 {
+		t.Errorf("expected hasher not to be called, got %d calls", hasher.calls)
 	}
 }
 
@@ -169,7 +173,7 @@ func TestCreateUserCommandHandler_HashError(t *testing.T) {
 func TestCreateUserCommandHandler_AlreadyExists(t *testing.T) {
 	repo := newFakeUserRepository()
 	repo.addErr = &user.AlreadyExistsError{Email: "rita@example.com"}
-	h := NewCreateUserCommandHandler(repo, &fakePasswordHasher{})
+	h := NewCreateUserCommandHandler(repo, &fakePasswordHasher{hash: "$2a$10$hashed"})
 
 	_, err := h.Handle(context.Background(), validCreateUserCommand())
 	if !errors.Is(err, ErrUserAlreadyExists) {
