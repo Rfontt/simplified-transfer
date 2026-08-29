@@ -1,6 +1,6 @@
 # Development (CONTEXT)
 
-Recorded: 2026-08-26
+Recorded: 2026-08-26 · Updated: 2026-08-29
 
 ## Commands
 - `go test ./...` — all tests
@@ -18,6 +18,7 @@ Recorded: 2026-08-26
 
 ## Stack
 - HTTP: Gin. Postgres: pgx (stdlib driver) + goose migrations. Tests: sqlmock (adapter error mapping).
+- Library list and versions: `.ai/context/libs.md`. Code style: `.ai/context/style.md`. Tests style: `.ai/context/testing.md`.
 
 ## Code conventions
 - HTTP adapters follow SRP: controllers are thin (bind → call use case → write), request DTOs in `request/`, response DTOs in `response/`, and error→HTTP-status mapping in a dedicated `error_handler.go`.- Pure domain, no external dependencies (except `google/uuid`).
@@ -35,9 +36,10 @@ Recorded: 2026-08-26
 
 ## State / known gaps
 - Event sourcing defined, but no persistence/replay.
-- Command handlers mostly stubs.
-- No HTTP API, no databases, no adapters (authorization/notification).
-- Tests: convention is unit in the domain + in-memory/mock repos, but there are currently NO `*_test.go` files (`go test ./...` reports "no test files" in every package).
+- Transfer/deposit command handlers are empty stubs (`internal/application/user/command`).
+- No authorization/notification adapters; no MongoDB read side.
+- `POST /accounts` vertical slice is wired end-to-end and tested (`go test ./...` passes, 2026-08-29).
+- Root `main.go` is stale GoLand boilerplate — the real entry point is `cmd/simplified-transfer/main.go`.
 
 ## Business rules (summary)
 - Only COMMON initiates transfers; SHOPKEEPER only receives.
