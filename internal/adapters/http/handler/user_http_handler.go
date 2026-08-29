@@ -1,4 +1,4 @@
-package http
+package handler
 
 import (
 	"net/http"
@@ -10,22 +10,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type UserController struct {
+type UserHTTPHandler struct {
 	createUser command.CreateUserUseCase
 }
 
-func NewUserController(createUser command.CreateUserUseCase) *UserController {
-	return &UserController{createUser: createUser}
+func NewUserHTTPHandler(createUser command.CreateUserUseCase) *UserHTTPHandler {
+	return &UserHTTPHandler{createUser: createUser}
 }
 
-func (c *UserController) Create(ctx *gin.Context) {
+func (h *UserHTTPHandler) Create(ctx *gin.Context) {
 	var req request.CreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
-	result, err := c.createUser.Handle(ctx.Request.Context(), command.CreateUserCommand{
+	result, err := h.createUser.Handle(ctx.Request.Context(), command.CreateUserCommand{
 		FullName: req.FullName,
 		Document: req.Document,
 		Email:    req.Email,

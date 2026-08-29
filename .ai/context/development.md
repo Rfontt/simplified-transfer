@@ -22,7 +22,8 @@ Recorded: 2026-08-26 · Updated: 2026-08-29
 - Library list and versions: `.ai/context/libs.md`. Code style: `.ai/context/style.md`. Tests style: `.ai/context/testing.md`.
 
 ## Code conventions
-- HTTP adapters follow SRP: controllers are thin (bind → call use case → write), request DTOs in `request/`, response DTOs in `response/`, and error→HTTP-status mapping in a dedicated `error_handler.go`.- Pure domain, no external dependencies (except `google/uuid`).
+- HTTP adapters follow SRP: thin handlers in `handler/` (bind → call use case → write), request DTOs in `request/`, response DTOs in `response/`, and error→HTTP-status mapping in a dedicated `handler/error_handler.go`.
+- Pure domain, no external dependencies (except `google/uuid`).
 - Events named in past tense: `UserCreated`, `MoneyDeposited`.
 - Repositories = interfaces in the domain; implementation in adapters.
 - Commands fail fast; handlers do not emit partial state.

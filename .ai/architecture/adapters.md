@@ -9,11 +9,11 @@ Recorded: 2026-08-29
 - `bcrypt_hasher.go` — `BcryptHasher` implements the `user.PasswordHasher` port (`Hash`), wrapping `golang.org/x/crypto/bcrypt` at default cost. Swapping the algorithm = new adapter only, domain/application untouched.
 
 ## HTTP (`internal/adapters/http`)
-- `router.go` — `NewRouter(createAccount command.CreateAccountUseCase, createUser usercommand.CreateUserUseCase) *gin.Engine`; wires controllers + routes (`POST /accounts`, `POST /users`). Router takes use-case ports, not concrete handlers.
-- `account_controller.go` / `user_controller.go` — thin controllers: bind JSON → call use case → write response. No business logic.
+- `router.go` — `NewRouter(createAccount command.CreateAccountUseCase, createUser usercommand.CreateUserUseCase) *gin.Engine`; wires handlers + routes (`POST /accounts`, `POST /users`). Router takes use-case ports, not concrete handlers.
+- `handler/` — package `handler`, thin HTTP handlers: `account_http_handler.go` / `user_http_handler.go` (`AccountHTTPHandler` / `UserHTTPHandler`): bind JSON → call use case → write response. No business logic.
 - `request/` — request DTOs with gin `binding` tags (`create_account_request.go`, `create_user_request.go`).
 - `response/` — response DTOs with a `NewXResponse(appResult)` constructor mapping the application result to the wire format (`create_account_response.go`, `create_user_response.go`).
-- `error_handler.go` — `writeError(ctx, err)` + `mapError(err) (int, string)`; sentinel error → HTTP status; unknown errors → 500 with a generic message (never leak internals).
+- `handler/error_handler.go` — `writeError(ctx, err)` + `mapError(err) (int, string)`; sentinel error → HTTP status; unknown errors → 500 with a generic message (never leak internals).
 - Contract source of truth: `docs/openapi.yaml` (see `.ai/context/http-api.md`).
 
 ## Postgres (`internal/adapters/postgres`)

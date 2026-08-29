@@ -1,4 +1,4 @@
-package http
+package handler
 
 import (
 	"net/http"
@@ -10,22 +10,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type AccountController struct {
+type AccountHTTPHandler struct {
 	createAccount command.CreateAccountUseCase
 }
 
-func NewAccountController(createAccount command.CreateAccountUseCase) *AccountController {
-	return &AccountController{createAccount: createAccount}
+func NewAccountHTTPHandler(createAccount command.CreateAccountUseCase) *AccountHTTPHandler {
+	return &AccountHTTPHandler{createAccount: createAccount}
 }
 
-func (c *AccountController) Create(ctx *gin.Context) {
+func (h *AccountHTTPHandler) Create(ctx *gin.Context) {
 	var req request.CreateAccountRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
-	result, err := c.createAccount.Handle(ctx.Request.Context(), command.CreateAccountCommand{
+	result, err := h.createAccount.Handle(ctx.Request.Context(), command.CreateAccountCommand{
 		OwnerID:  req.OwnerID,
 		Currency: req.Currency,
 		Balance:  req.Balance,
