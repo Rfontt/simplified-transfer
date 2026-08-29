@@ -17,5 +17,5 @@ Recorded: 2026-08-29
 - **Helpers:** `t.Helper()` on shared fixtures; `t.Cleanup(func(){ db.Close() })`; `t.Setenv` for config tests.
 
 ## Status (verified 2026-08-29)
-- `go test ./...` passes. Coverage: domain/account, application/account/command, adapters/http, adapters/postgres, config.
-- No tests yet for: user domain, user application (stubs), projections, transfer/deposit flows.
+- `go test ./...` passes. Coverage: domain/account, domain/user, application/account/command, application/user/command, adapters/http, adapters/postgres, adapters/crypto, config.
+- No tests yet for: user queries/projections, transfer/deposit flows.

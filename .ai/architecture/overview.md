@@ -25,13 +25,12 @@ A simplified transfer system in Go, demonstrating DDD + CQRS + Event Sourcing. D
 `internal/domain` (pure logic) → `internal/application` (CQRS use cases: `command/` and `query/`) → `internal/adapters` (http, postgres).
 
 ## Current status (2026-08-29)
-- Account creation is the wired vertical slice: `POST /accounts` (Gin) →
-  `CreateAccountCommandHandler` → Postgres `AccountRepository` (goose migrations on startup).
+- Account creation and user creation are wired vertical slices: `POST /accounts` and `POST /users` (Gin) → command handlers → Postgres repositories (goose migrations on startup). Passwords hashed via `user.PasswordHasher` port (bcrypt adapter).
 - Layer details live in `.ai/architecture/`: `domain.md`, `application.md`, `adapters.md`, `config.md`.
 - HTTP contract source of truth: `docs/openapi.yaml` (see `.ai/context/http-api.md`).
 - NOT yet implemented: transfer/deposit endpoints, MongoDB queries, event
   store persistence/replay, projections connected to the stream, authorization
-  and notification adapters, user endpoints.
+  and notification adapters.
 
 ## Links (decision process)
 - https://medium.com/@rfontt/event-storming-questionar-organizar-e-decidir-assertivamente-ab00891b6b50

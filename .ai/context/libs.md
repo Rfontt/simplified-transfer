@@ -10,6 +10,7 @@ Recorded: 2026-08-29 — Go 1.26.0, module `event-driven-architecture`
 | `github.com/jackc/pgx/v5` | v5.10.0 | Postgres driver (stdlib `database/sql`) | `internal/adapters/postgres` |
 | `github.com/pressly/goose/v3` | v3.27.3 | SQL migrations (embedded, applied on startup) | `internal/adapters/postgres` |
 | `github.com/DATA-DOG/go-sqlmock` | v1.5.2 | Postgres adapter tests (test-only) | `internal/adapters/postgres/*_test.go` |
+| `golang.org/x/crypto` | v0.55.0 | bcrypt password hashing (ADR-0005) | `internal/adapters/crypto` |
 
 ## Notable indirects
 - `go.mongodb.org/mongo-driver/v2` — present in go.sum as indirect; MongoDB read side (ADR-0002) is planned, NOT yet integrated.

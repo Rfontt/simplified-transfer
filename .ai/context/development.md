@@ -15,6 +15,7 @@ Recorded: 2026-08-26 · Updated: 2026-08-29
 - Env: `DATABASE_URL` (defaults to `postgres://postgres:postgres@localhost:5432/simplified_transfer?sslmode=disable`) and `HTTP_PORT` (default `8080`); see `.env.example`.
 - `go run ./cmd/simplified-transfer/` — applies goose migrations on startup, serves on `:8080`.
 - Create an account: `POST /accounts` `{ "owner_id": "<uuid>", "currency": "BRL", "balance": 0 }`.
+- Create a user: `POST /users` `{ "full_name": "Rita", "document": "529.982.247-25", "email": "rita@example.com", "password": "secret", "type": "common" }`.
 
 ## Stack
 - HTTP: Gin. Postgres: pgx (stdlib driver) + goose migrations. Tests: sqlmock (adapter error mapping).
@@ -38,7 +39,7 @@ Recorded: 2026-08-26 · Updated: 2026-08-29
 - Event sourcing defined, but no persistence/replay.
 - Transfer/deposit command handlers are empty stubs (`internal/application/user/command`).
 - No authorization/notification adapters; no MongoDB read side.
-- `POST /accounts` vertical slice is wired end-to-end and tested (`go test ./...` passes, 2026-08-29).
+- `POST /accounts` and `POST /users` vertical slices are wired end-to-end and tested (`go test ./...` passes, 2026-08-29).
 - Root `main.go` is stale GoLand boilerplate — the real entry point is `cmd/simplified-transfer/main.go`.
 
 ## Business rules (summary)
