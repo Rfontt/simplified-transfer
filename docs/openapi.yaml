@@ -12,8 +12,64 @@ servers:
 tags:
   - name: accounts
     description: Account operations
+  - name: users
+    description: User operations
 
 paths:
+  /users:
+    post:
+      tags:
+        - users
+      summary: Create a new user
+      description: |
+        Creates a user with a unique document (CPF or CNPJ) and email.
+        The password is stored hashed with bcrypt. Account creation is a
+        separate step (POST /accounts).
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+            examples:
+              common:
+                summary: Create a COMMON user
+                value:
+                  full_name: Rita Fontenele
+                  document: 529.982.247-25
+                  email: rita@example.com
+                  password: secret
+                  type: common
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: |
+            Invalid request. The body is malformed, a required field is
+            missing, the document is not a valid CPF or CNPJ, or the type is
+            not common or shopkeeper.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: A user with this document or email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /accounts:
     post:
       tags:
@@ -72,6 +128,62 @@ paths:
 
 components:
   schemas:
+    CreateUserRequest:
+      type: object
+      required:
+        - full_name
+        - document
+        - email
+        - password
+        - type
+      properties:
+        full_name:
+          type: string
+          description: Full name of the user
+          example: Rita Fontenele
+        document:
+          type: string
+          description: CPF (11 digits) or CNPJ (14 digits), with or without punctuation
+          example: 529.982.247-25
+        email:
+          type: string
+          format: email
+          example: rita@example.com
+        password:
+          type: string
+          format: password
+          description: Plain password; stored hashed (bcrypt), never returned
+          example: secret
+        type:
+          type: string
+          enum:
+            - common
+            - shopkeeper
+          example: common
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        full_name:
+          type: string
+        document:
+          type: string
+        email:
+          type: string
+          format: email
+        type:
+          type: string
+          enum:
+            - common
+            - shopkeeper
+      required:
+        - id
+        - full_name
+        - document
+        - email
+        - type
     CreateAccountRequest:
       type: object
       required:

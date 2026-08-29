@@ -28,7 +28,7 @@ func (s *stubCreateAccount) Handle(_ context.Context, _ command.CreateAccountCom
 func performRequest(t *testing.T, useCase command.CreateAccountUseCase, body string) *httptest.ResponseRecorder {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
-	router := NewRouter(useCase)
+	router := NewRouter(useCase, &stubCreateUser{})
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/accounts", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
