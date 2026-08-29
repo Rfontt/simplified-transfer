@@ -49,3 +49,10 @@ Recorded: 2026-08-26 · Updated: 2026-08-29
 - Authorization/notification failure → refund + FAILED status.
 - CPF/CNPJ and email unique.
 - Endpoint: `POST /transfer { value, payer, payee }`.
+
+## Code review agent
+- Trigger: `/review` — fully automated: reviews the worktree changes (`git diff HEAD` + untracked), writes findings to `.git/review-notes.json`, and opens a Hunk window with the comments already rendered. No manual step.
+- Review window: **herdr** when pi runs inside herdr (`HERDR_ENV=1`) — splits a sibling pane and runs `hunk diff --agent-context .git/review-notes.json --agent-notes`; **osascript + Terminal** fallback outside herdr; chat-only if hunk is missing.
+- The review applies the project ruleset `.ai/context/code-review.md` (DDD + style + process rules, each with an ID) on top of the generic `code-review` skill.
+- To add a rule: append a numbered entry in `.ai/context/code-review.md` under the right category — nothing else to change.
+- Hunk review skill: `hunk skill path` (bundled with `hunkdiff`, npm global). Herdr skill: `~/.pi/agent/skills/herdr/SKILL.md` (`herdr --skill`).
