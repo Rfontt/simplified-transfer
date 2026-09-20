@@ -118,6 +118,22 @@ func TestAccountRepository_ByID(t *testing.T) {
 	}
 }
 
+func TestAccountRepository_ByIDNotFound(t *testing.T) {
+	db, mock := newMockDB(t)
+	repo := NewAccountRepository(db)
+	_, id, _ := testAccount(t)
+
+	mock.ExpectQuery(`SELECT id, owner_id, currency, balance, status, created_at`).
+		WithArgs(id.String()).
+		WillReturnError(sql.ErrNoRows)
+
+	_, err := repo.ByID(context.Background(), account.AccountID(id))
+	var notFound *account.AccountNotFoundError
+	if !errors.As(err, &notFound) {
+		t.Fatalf("expected AccountNotFoundError, got %v", err)
+	}
+}
+
 func TestAccountRepository_AllAccounts(t *testing.T) {
 	db, mock := newMockDB(t)
 	repo := NewAccountRepository(db)

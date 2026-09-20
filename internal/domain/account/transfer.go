@@ -1,11 +1,10 @@
 package account
 
 import (
-	"context"
-	"errors"
+	"time"
+
 	"event-driven-architecture/internal/domain"
 	"event-driven-architecture/internal/domain/user"
-	"fmt"
 
 	"github.com/google/uuid"
 )
@@ -16,39 +15,79 @@ type Transfer struct {
 	To     AccountID
 	Amount domain.MonetaryAmount
 	Status AccountTransactionStatus
+
+	events []domain.Event
 }
 
-type NewTransfer struct {
-	userRepository    user.UserRepository
-	transferService   TransferService
-	accountRepository AccountRepository
+func NewTransfer(id uuid.UUID, from, to *Account, payer *user.User, amount domain.MonetaryAmount) (*Transfer, error) {
+	transfer := newPendingTransfer(id, from.ID, to.ID, amount)
+	if err := transfer.validate(from, to, payer); err != nil {
+		return transfer.failed(err.Error()), err
+	}
+	if err := from.Debit(amount); err != nil {
+		return transfer.failed(err.Error()), err
+	}
+	to.Credit(amount)
+	transfer.Status = COMPLETED
+	transfer.record(AccountTransferSucceeded{
+		ID:        id,
+		CreatedAt: time.Now(),
+		Amount:    amount.Value,
+		From:      from.ID,
+		To:        to.ID,
+	})
+	return transfer, nil
 }
 
-func (t NewTransfer) CreateTransfer(ctx context.Context, from, to AccountID, amount domain.MonetaryAmount) (*Transfer, error) {
-	fromAccount, err := t.accountRepository.ByID(ctx, from)
-	if err != nil {
-		return nil, err
+func NewFailedTransfer(id uuid.UUID, from, to AccountID, amount domain.MonetaryAmount, reason string) *Transfer {
+	return newPendingTransfer(id, from, to, amount).failed(reason)
+}
+
+func (t *Transfer) UncommittedEvents() []domain.Event {
+	return t.events
+}
+
+func (t *Transfer) validate(from, to *Account, payer *user.User) error {
+	if !t.Amount.IsPositive() {
+		return &domain.ConstraintValidationError{Field: "amount"}
 	}
-
-	if !fromAccount.CanTransact() || !fromAccount.HasBalance(amount) {
-		return nil, errors.New("sender account is not allowed to perform transfers")
+	if t.From == t.To {
+		return &SameAccountTransferError{AccountID: t.From}
 	}
-
-	userFrom, err := t.userRepository.ByID(ctx, fromAccount.OwnerId)
-	if err != nil {
-		return nil, err
+	if from.Balance.Currency != to.Balance.Currency {
+		return &CurrencyMismatchError{FromCurrency: from.Balance.Currency, ToCurrency: to.Balance.Currency}
 	}
-
-	if !userFrom.CanTransfer() {
-		return nil, fmt.Errorf("%v user type is not allowed to transfer", userFrom.Type)
+	if !payer.CanTransfer() {
+		return &TransferNotAllowedError{UserType: payer.Type}
 	}
+	return nil
+}
 
-	result, err := t.transferService.TransferFunds(from, to, amount)
-	if err != nil {
-		return nil, err
-	}
+func (t *Transfer) failed(reason string) *Transfer {
+	t.Status = FAILED
+	t.record(AccountTransferFailed{
+		ID:           t.ID,
+		CreatedAt:    time.Now(),
+		Amount:       t.Amount.Value,
+		To:           t.To,
+		From:         t.From,
+		ErrorMessage: reason,
+	})
+	return t
+}
 
-	// TODO: emit domain events here
+func (t *Transfer) record(event domain.Event) {
+	t.events = append(t.events, event)
+}
 
-	return result, nil
+func newPendingTransfer(id uuid.UUID, from, to AccountID, amount domain.MonetaryAmount) *Transfer {
+	transfer := &Transfer{ID: id, From: from, To: to, Amount: amount, Status: PENDING}
+	transfer.record(AccountTransferCreated{
+		ID:        id,
+		CreatedAt: time.Now(),
+		Amount:    amount.Value,
+		To:        to,
+		From:      from,
+	})
+	return transfer
 }

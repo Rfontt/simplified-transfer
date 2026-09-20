@@ -16,6 +16,12 @@ Recorded: 2026-08-29
 - **Compile-time interface assertions** in test files: `var _ CreateAccountUseCase = (*CreateAccountCommandHandler)(nil)` and `var _ account.AccountRepository = (*fakeAccountRepository)(nil)`.
 - **Helpers:** `t.Helper()` on shared fixtures; `t.Cleanup(func(){ db.Close() })`; `t.Setenv` for config tests.
 
-## Status (verified 2026-08-29)
-- `go test ./...` passes. Coverage: domain/account, domain/user, application/account/command, application/user/command, adapters/http, adapters/postgres, adapters/crypto, config.
-- No tests yet for: user queries/projections, transfer/deposit flows.
+## Status (verified 2026-09-20)
+- `go test ./...` passes. Coverage: domain/account (including the transfer rules and the
+  collected domain events), domain/user, application/account/command (create account, transfer
+  with hand-rolled port fakes), application/user/command, adapters/http, adapters/postgres,
+  adapters/crypto, config.
+- Transfer flow tests: `internal/domain/account/transfer_test.go` (rules + event order) and
+  `internal/application/account/command/transfer_money_command_handler_test.go` (fakes:
+  `fakeTransferRepository`, `fakeUserRepository`, `stubAuthorizer`, `recordingPublisher`).
+- No tests yet for: user queries/projections, the deposit flow, the HTTP transfer route.
