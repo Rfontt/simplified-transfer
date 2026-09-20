@@ -17,3 +17,11 @@ type OwnerNotFoundError struct {
 func (e *OwnerNotFoundError) Error() string {
 	return fmt.Sprintf("owner %s not found", e.OwnerID)
 }
+
+type AccountNotFoundError struct {
+	AccountID string
+}
+
+func (e *AccountNotFoundError) Error() string {
+	return fmt.Sprintf("account %s not found", e.AccountID)
+}

@@ -46,16 +46,21 @@ inline these rules — the error flows through to HTTP (400).
 - `AccountStatus` enum: `active`/`blocked`/`closed` (lowercase).
 - `AccountTransactionStatus` enum: `PENDING`/`COMPLETED`/`FAILED` (UPPERCASE).
 - Entities: `Deposit` `{ID, AccountId, Amount, Status}`, `Transfer` `{ID, From, To, Amount, Status}`.
-- Ports: `AccountRepository` (ByID/Add/AllAccounts), `DepositRepository`, `TransferRepository` (note: Deposit/Transfer repos use `id string`, not a typed ID), `AccountQueries` — read-side port `OwnerBalance(ctx, ownerID uuid.UUID)`.
-- Domain services: `DepositService`, `TransferService` interfaces (adapter impls not yet written).
-- Unusual pattern: `NewDeposit` / `NewTransfer` are structs that hold injected deps (service + repositories) and expose `Create()` / `CreateTransfer(ctx, ...)`. Callers must wire the deps; no plain constructor exists for these.
+- Ports: `AccountRepository` (ByID/Add/AllAccounts), `DepositRepository`, `TransferRepository` (`ByID`/`Save(ctx, transfer, from, to)`/`AllTransfers` — `Save` is the single write seam, the future transaction boundary; Deposit repo still uses `id string`), `AccountQueries` — read-side port `OwnerBalance(ctx, ownerID uuid.UUID)`, `TransferAuthorizer` (`Authorize(ctx, transferID) error`) — outbound authorization port next to the rule it serves (ADR-0008).
+- Domain services: `DepositService` interface (no adapter implementation). `TransferService` was **deleted** in ADR-0008 — the transfer flow is now a factory.
+- Factories (ADR-0008): `NewTransfer(id, from, to, payer, amount) (*Transfer, error)` validates and executes a transfer, returning a non-nil FAILED transfer together with the typed error on refusal; `NewFailedTransfer(id, from, to, amount, reason)` records an attempt refused before execution (authorization). Both collect `AccountTransferCreated` and then `AccountTransferSucceeded`/`AccountTransferFailed`; `Transfer.UncommittedEvents()` exposes them.
+- `Account.Debit(amount) error` (refuses a non-ACTIVE account and an insufficient balance) and `Account.Credit(amount)`; `HasBalance(amount)` compares with `>=`.
+- `domain.Event` (`EventName() string`) lives in the root package; implemented by the three transfer events only.
+- Unusual pattern that remains: `NewDeposit` is a struct holding injected deps (`DepositService`) and exposing `Create()`; migrating it is a follow-up.
 - Events: `AccountCreated`, `AccountTransferCreated/Succeeded/Failed`, `AccountDepositCreated/Succeeded/Failed` — plain structs with `uuid.UUID` + `time.Time` fields.
 - Errors: `AccountAlreadyExistsError{OwnerID}`, `OwnerNotFoundError{OwnerID}`, plus the
   shared `domain.ConstraintValidationError` for field violations.
 
 ## Business rules encoded in domain
 - Only COMMON users may initiate transfers (`User.CanTransfer`); SHOPKEEPER receives only.
-- Sender account must be ACTIVE and have sufficient balance (`NewTransfer.CreateTransfer`).
+- Sender account must be ACTIVE and have a sufficient balance (`Account.Debit`, called by `NewTransfer`); an amount equal to the balance is sufficient.
+- A transfer amount must be positive (`domain.ConstraintValidationError{Field: "amount"}`), the payer and payee accounts must differ and must hold the same currency, and no conversion is performed.
+- Every attempt produces `created` then exactly one outcome event; refusals carry the reason in `AccountTransferFailed`.
 - Deposit amount must be positive (`NewDeposit.Create`) →
   `domain.ConstraintValidationError{Field: "amount"}`.
 - New users/accounts must be valid at construction (ADR-0006/0007).

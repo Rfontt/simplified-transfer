@@ -18,7 +18,7 @@ Recorded: 2026-08-29
 
 ## Postgres (`internal/adapters/postgres`)
 - `connection.go` — `Open(dsn)` using the pgx stdlib driver over `database/sql` (import `_ "github.com/jackc/pgx/v5/stdlib"`), with a Ping check.
-- `account_repository.go` — implements the `account.AccountRepository` port. SQL statements are package-level consts; `scanAccount` scans via a small `rowScanner` interface (works for both `*sql.Row` and `*sql.Rows`); `translateError` maps `pgconn.PgError` codes → domain error types: `23505` unique_violation → `AccountAlreadyExistsError`, `23503` foreign_key_violation → `OwnerNotFoundError`, anything else passes through.
+- `account_repository.go` — implements the `account.AccountRepository` port. SQL statements are package-level consts; `scanAccount` scans via a small `rowScanner` interface (works for both `*sql.Row` and `*sql.Rows`); `translateError` maps `pgconn.PgError` codes → domain error types: `23505` unique_violation → `AccountAlreadyExistsError`, `23503` foreign_key_violation → `OwnerNotFoundError`, anything else passes through; `ByID` translates `sql.ErrNoRows` → `AccountNotFoundError` (ADR-0008).
 - `user_repository.go` — implements the `user.UserRepository` port (`Add`/`ByID`/`AllUsers`); `scanUser` via `rowScanner`; `translateUserError` maps `23505` → `AlreadyExistsError`, distinguishing `users_document_key` vs `users_email_key` through `pgErr.ConstraintName` (fallback sets both fields).
 - `migrations.go` — goose provider with `//go:embed migrations/*.sql`; `Migrate(ctx, db)` runs `Up` on startup (called from `cmd/simplified-transfer/main.go`).
 - Migrations: `00001_create_users.sql` (unique document + email), `00002_create_accounts.sql` (`owner_id UNIQUE REFERENCES users(id)`, `balance DOUBLE PRECISION`).

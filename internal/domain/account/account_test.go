@@ -70,3 +70,66 @@ func TestNewAccount_TrimsCurrency(t *testing.T) {
 		t.Errorf("expected trimmed currency, got %q", acc.Balance.Currency)
 	}
 }
+
+func newTestAccount(t *testing.T, ownerID user.ID, currency string, balance float64) *Account {
+	t.Helper()
+	acc, err := NewAccount(AccountID(uuid.New()), ownerID, domain.MonetaryAmount{Currency: currency, Value: balance})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	return acc
+}
+
+func TestAccount_HasBalanceExactAmount(t *testing.T) {
+	acc := newTestAccount(t, user.ID(uuid.New()), "BRL", 100)
+
+	if !acc.HasBalance(domain.MonetaryAmount{Currency: "BRL", Value: 100}) {
+		t.Error("expected an amount equal to the balance to be sufficient")
+	}
+	if acc.HasBalance(domain.MonetaryAmount{Currency: "BRL", Value: 100.01}) {
+		t.Error("expected an amount above the balance to be insufficient")
+	}
+}
+
+func TestAccount_DebitAndCredit(t *testing.T) {
+	acc := newTestAccount(t, user.ID(uuid.New()), "BRL", 100)
+
+	if err := acc.Debit(domain.MonetaryAmount{Currency: "BRL", Value: 30}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if acc.Balance.Value != 70 {
+		t.Errorf("expected balance 70, got %v", acc.Balance.Value)
+	}
+
+	acc.Credit(domain.MonetaryAmount{Currency: "BRL", Value: 10})
+	if acc.Balance.Value != 80 {
+		t.Errorf("expected balance 80, got %v", acc.Balance.Value)
+	}
+}
+
+func TestAccount_DebitNotTransactable(t *testing.T) {
+	acc := newTestAccount(t, user.ID(uuid.New()), "BRL", 100)
+	acc.Status = BLOCKED
+
+	err := acc.Debit(domain.MonetaryAmount{Currency: "BRL", Value: 10})
+	var notTransactable *AccountNotTransactableError
+	if !errors.As(err, &notTransactable) {
+		t.Fatalf("expected AccountNotTransactableError, got %v", err)
+	}
+	if acc.Balance.Value != 100 {
+		t.Errorf("expected the balance to be unchanged, got %v", acc.Balance.Value)
+	}
+}
+
+func TestAccount_DebitInsufficientBalance(t *testing.T) {
+	acc := newTestAccount(t, user.ID(uuid.New()), "BRL", 100)
+
+	err := acc.Debit(domain.MonetaryAmount{Currency: "BRL", Value: 101})
+	var insufficient *InsufficientBalanceError
+	if !errors.As(err, &insufficient) {
+		t.Fatalf("expected InsufficientBalanceError, got %v", err)
+	}
+	if acc.Balance.Value != 100 {
+		t.Errorf("expected the balance to be unchanged, got %v", acc.Balance.Value)
+	}
+}

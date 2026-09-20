@@ -13,7 +13,28 @@ Recorded: 2026-08-29
   rules live in `account.validateFields` (ADR-0007); validation errors pass through
   untouched as `domain.ConstraintValidationError` → HTTP 400.
 - Sentinel errors in `errors.go`: `ErrAccountAlreadyExists`, `ErrOwnerNotFound`,
-  `ErrInvalidOwnerID` (plain `errors.New`, compared with `errors.Is`).
+  `ErrInvalidOwnerID` (plain `errors.New`, compared with `errors.Is`), plus the transfer
+  sentinels `ErrInvalidPayerAccountID`, `ErrInvalidPayeeAccountID`, `ErrPayerAccountNotFound`,
+  `ErrPayeeAccountNotFound`, `ErrTransferNotAuthorized`, `ErrInsufficientBalance`,
+  `ErrAccountNotTransactable`, `ErrTransferNotAllowed`, `ErrSameAccountTransfer`,
+  `ErrCurrencyMismatch`, `ErrTransferEventPublishFailed`.
+- `TransferMoneyCommand` `{PayerAccountID, PayeeAccountID string, Value float64}` +
+  `TransferMoneyCommandHandler` (ADR-0008) implements the `TransferMoneyUseCase` port
+  (`Handle(ctx, cmd) (*TransferMoneyResult, error)`), the port the future HTTP adapter consumes.
+  Constructor ports: `account.AccountRepository`, `user.UserRepository`,
+  `account.TransferRepository`, `account.TransferAuthorizer`, `TransferEventPublisher`.
+  Order: parse both UUIDs → load payer account, payee account, payer user → authorize (a refusal
+  records a FAILED transfer through `account.NewFailedTransfer`, persists, publishes and returns
+  `ErrTransferNotAuthorized` with no balance change) → `account.NewTransfer` (the domain enforces
+  every rule and collects the events) → one `transfers.Save(ctx, transfer, from, to)` call per
+  attempt → publish each `UncommittedEvents()` entry (failure ⇒
+  `ErrTransferEventPublishFailed`, never success) → map domain refusals to sentinels, leaving
+  `domain.ConstraintValidationError` untouched (→ 400).
+- `TransferMoneyResult` `{TransferID, Status, Value, Currency, PayerAccountID, PayeeAccountID,
+  Events []domain.Event}`. `TransferEventPublisher` is the outbound publisher port (only the test
+  fake implements it).
+- The use case is not wired into `main.go`: no adapter implements its write, authorization or
+  publisher ports yet.
 
 ## Error-mapping chain
 1. Postgres adapter: DB error (pg code) → domain error type (`AccountAlreadyExistsError`, `OwnerNotFoundError`).

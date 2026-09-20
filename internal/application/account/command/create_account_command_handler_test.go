@@ -29,7 +29,11 @@ func (f *fakeAccountRepository) Add(_ context.Context, acc *account.Account) err
 }
 
 func (f *fakeAccountRepository) ByID(_ context.Context, id account.AccountID) (*account.Account, error) {
-	return f.accounts[uuid.UUID(id)], nil
+	acc, ok := f.accounts[uuid.UUID(id)]
+	if !ok {
+		return nil, &account.AccountNotFoundError{AccountID: uuid.UUID(id).String()}
+	}
+	return acc, nil
 }
 
 func (f *fakeAccountRepository) AllAccounts(_ context.Context) ([]*account.Account, error) {

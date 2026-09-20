@@ -38,7 +38,12 @@ Recorded: 2026-08-26 · Updated: 2026-08-29
 
 ## State / known gaps
 - Event sourcing defined, but no persistence/replay.
-- Transfer/deposit command handlers are empty stubs (`internal/application/user/command`).
+- The transfer flow is implemented as a logical slice (ADR-0008): domain rules, collected
+  domain events and `TransferMoneyCommandHandler` over port fakes. Not wired into the running
+  service; no balance persistence, no authorization adapter, no notification, no HTTP route.
+- `internal/application/user/command/user_deposit_money_*` and `user_transfer_money_*` remain
+  empty stubs (superseded by the account transfer use case); deposit has no use case yet.
+- `internal/domain/account/transfer_service.go` was deleted (ADR-0008).
 - No authorization/notification adapters; no MongoDB read side.
 - `POST /accounts` and `POST /users` vertical slices are wired end-to-end and tested (`go test ./...` passes, 2026-08-29).
 - Root `main.go` is stale GoLand boilerplate — the real entry point is `cmd/simplified-transfer/main.go`.

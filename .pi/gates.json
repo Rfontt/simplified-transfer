@@ -1,0 +1,19 @@
+{
+  "verify": {
+    "commands": ["go build ./cmd/simplified-transfer/", "go vet ./...", "go test ./..."]
+  },
+  "rules": [
+    {
+      "id": "domain-purity",
+      "description": "domain imports no infrastructure",
+      "mode": "forbidden",
+      "command": "grep -rn 'net/http\\|gin-gonic\\|database/sql' internal/domain/ 2>/dev/null"
+    },
+    {
+      "id": "gofmt",
+      "description": "all Go files formatted",
+      "mode": "forbidden",
+      "command": "gofmt -l internal cmd 2>/dev/null"
+    }
+  ]
+}

@@ -57,5 +57,20 @@ func (a Account) CanTransact() bool {
 }
 
 func (a Account) HasBalance(amount domain.MonetaryAmount) bool {
-	return a.Balance.Value > amount.Value
+	return a.Balance.Value >= amount.Value
+}
+
+func (a *Account) Debit(amount domain.MonetaryAmount) error {
+	if !a.CanTransact() {
+		return &AccountNotTransactableError{AccountID: a.ID, Status: a.Status}
+	}
+	if !a.HasBalance(amount) {
+		return &InsufficientBalanceError{AccountID: a.ID, Balance: a.Balance.Value, Amount: amount.Value}
+	}
+	a.Balance.Value -= amount.Value
+	return nil
+}
+
+func (a *Account) Credit(amount domain.MonetaryAmount) {
+	a.Balance.Value += amount.Value
 }

@@ -50,6 +50,9 @@ func (r *AccountRepository) ByID(ctx context.Context, id account.AccountID) (*ac
 	row := r.db.QueryRowContext(ctx, selectAccountByIDSQL, uuid.UUID(id))
 	acc, err := scanAccount(row)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, &account.AccountNotFoundError{AccountID: uuid.UUID(id).String()}
+		}
 		return nil, err
 	}
 	return acc, nil

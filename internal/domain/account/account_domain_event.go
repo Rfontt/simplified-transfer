@@ -26,6 +26,19 @@ type AccountTransferSucceeded struct {
 	CreatedAt time.Time
 	Amount    float64
 	From      AccountID
+	To        AccountID
+}
+
+func (AccountTransferCreated) EventName() string {
+	return "AccountTransferCreated"
+}
+
+func (AccountTransferSucceeded) EventName() string {
+	return "AccountTransferSucceeded"
+}
+
+func (AccountTransferFailed) EventName() string {
+	return "AccountTransferFailed"
 }
 
 type AccountTransferFailed struct {
